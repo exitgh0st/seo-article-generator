@@ -1,0 +1,101 @@
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-height: 4rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--fg);
+  margin-right: auto;
+
+  &:hover { color: var(--fg); }
+}
+
+.brand-mark {
+  width: 0.6rem;
+  height: 1.6rem;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 40%, transparent));
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+
+  strong { font-size: 1.05rem; letter-spacing: -0.02em; }
+  small { font-size: 0.72rem; color: var(--muted); }
+}
+
+.nav {
+  display: flex;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+
+  a {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid transparent;
+
+    &:hover { color: var(--fg); }
+    &.active { color: var(--fg); border-bottom-color: var(--accent); }
+  }
+}
+
+.admin-link {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.7rem;
+
+  &:hover { color: var(--fg); border-color: var(--muted); }
+  &.active { color: var(--accent); border-color: var(--accent); }
+}
+
+main { min-height: 60vh; }
+
+.site-footer {
+  margin-top: 5rem;
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1rem;
+
+  a { color: var(--muted); text-decoration: none; &:hover { color: var(--fg); } }
+}
+
+@media (max-width: 640px) {
+  .header-inner { padding-block: 0.75rem; }
+  .nav { order: 3; width: 100%; }
+}
