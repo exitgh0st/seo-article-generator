@@ -1,0 +1,20 @@
+# Render deployment for the operator app.
+#
+# The app is static files. The rewrite is the part that matters: Angular uses
+# path-based routes, so a full page load of /admin/<slug> asks the host for a
+# file that does not exist. Without the rewrite every deep link and every browser
+# refresh 404s, while in-app navigation looks fine — which is how this gets
+# missed until someone reloads the page.
+#
+# The API is a separate service and is not described here. Its ORIGIN must
+# contain this site's URL, or every request the app makes fails CORS.
+services:
+  - type: web
+    runtime: static
+    name: cyberbrief-app
+    buildCommand: npm ci --prefix app && npm --prefix app run build
+    staticPublishPath: app/dist/app
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -6,7 +6,7 @@ A system for producing publication-quality cybersecurity news articles, with two
 
 1. **The app generates them**, driven by buttons rather than a chat box. An operator types a topic at `/admin/new`, picks one of two or three angles when asked, and gets a reviewable draft. Six stages run server-side on DeepSeek: research, angle, draft, humanize, audit, review.
 2. **You write them** through the skills in `.claude/skills/`, which is the higher-quality path and the one to use for a flagship piece. A three-topic comparison scored it 14/15 against the in-app path's 12/15 under matched conditions.
-3. **A NestJS API** (`api/`) owns Postgres, the generation pipeline, the SEO rubric, the editorial scan, the grounding gate and publishing. **An Angular 20 + SSR app** (`app/`) serves the articles and provides the review, edit and publish screens.
+3. **A NestJS API** (`api/`) owns Postgres, the generation pipeline, the SEO rubric, the editorial scan, the grounding gate and publishing. **An Angular 20 app** (`app/`) provides the review, edit and publish screens. It is a static bundle — no server rendering — because it is an operator tool, not the public face of the articles. It calls the API cross-origin, so the API's `ORIGIN` allowlist has to name wherever the app is hosted.
 
 Both paths write through the same `ArticlesService.save()` and are judged by the same rubric, ban list and grounding gate, so neither can produce something the other could not.
 
@@ -129,8 +129,7 @@ npm run brief:export -- <brief-slug>
 npm run article:export -- <slug>
 
 npm run db:up            # Postgres in Docker (port 5433)
-npm run build            # build both halves
-npm run serve:ssr        # production SSR server on :4000, proxying to the API
+npm run build            # build both halves; the app builds to app/dist/app as static files
 ```
 
 `npm run audit` is the one to reach for most. It needs no database, so it works on a draft before it has been imported.

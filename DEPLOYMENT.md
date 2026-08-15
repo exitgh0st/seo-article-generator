@@ -12,7 +12,7 @@ Three processes and one unusual requirement.
 |---|---|---|
 | Postgres | Articles, briefs, retained source text | Managed database, or a container with a volume |
 | `api/` | NestJS on :3000 — storage, scoring, grounding, publishing | Server |
-| `app/` | Angular SSR on :4000 — the public site and the review screens | Server |
+| `app/` | Angular, built to static files — the review screens | Static host or CDN |
 | **Claude Code** | Where articles are actually researched and written | **An operator's laptop** |
 
 The unusual part is the last row. **The server contains no model.** It scores,
@@ -51,11 +51,15 @@ first commit — it holds the JWT secret and the admin password hash.
 - `app/src/app/core/site.config.ts` → `origin`, and `twitter`
 - `api/src/feeds/site-config.service.ts` → the `FALLBACK`
 
-**And then `angular.json` → `security.allowedHosts`.** This one is a trap: if the
-serving host is not in that list, SSR silently falls back to client rendering and
-every meta tag, canonical URL and piece of JSON-LD disappears from what crawlers
-see. The site will look completely fine in a browser. For an SEO product that is
-the worst possible failure, because nothing surfaces it.
+These describe the canonical address articles are published under, which is what
+goes into sitemap URLs, canonical tags and JSON-LD. It is not necessarily where
+the operator app itself is hosted — see the next section for that.
+
+**And then `app/src/environments/environment.prod.ts` → `apiUrl`.** This one is a
+trap: the operator app is static files with no proxy of its own, so if `apiUrl`
+does not name the deployed API's origin exactly, the app builds and loads
+perfectly and then every screen is empty. Set it, and put the app's own origin in
+the API's `ORIGIN` allowlist, or the browser blocks the calls at CORS.
 
 ### 3. Decide where `content/` lives
 
@@ -97,19 +101,20 @@ Everything the API needs, and nothing more:
 DATABASE_URL=postgresql://user:pass@host:5432/seo_articles?schema=public
 JWT_SECRET=<openssl rand -hex 32>
 ADMIN_PASSWORD_HASH=<npm run hash:password>
-ORIGIN=https://theclientdomain.com        # CORS allowlist
+ORIGIN=https://admin.theclientdomain.com  # CORS allowlist — the app's origin
 SITE_ORIGIN=https://theclientdomain.com   # canonical URLs, sitemap, rss
 CONTENT_DIR=/var/lib/cyberbrief/content   # only if you mounted a volume
 NODE_ENV=production
 ```
 
-The app process needs one variable, and it is in no `.env` file because it
-belongs to the Node server rather than the API:
+`ORIGIN` matters more than it used to. The app no longer proxies through a server
+of its own, so every request it makes is cross-origin and this list is the only
+thing that lets them through. It splits on commas — include preview deployments
+if the host makes them.
 
-```bash
-API_URL=http://127.0.0.1:3000   # where the SSR server proxies /api
-PORT=4000
-```
+The app has no runtime environment at all. It is a directory of files. Its one
+piece of configuration, the API's URL, is compiled in from
+`app/src/environments/environment.prod.ts`, so **changing it means a rebuild**.
 
 There are no model or search API keys anywhere. If you find `DEEPSEEK_API_KEY` or
 `TAVILY_API_KEY` in a config you are looking at a stale copy.
@@ -118,27 +123,58 @@ There are no model or search API keys anywhere. If you find `DEEPSEEK_API_KEY` o
 
 ## Deploying
 
+Two deployments now, not two processes.
+
+**The API** is the only thing that runs:
+
 ```bash
-npm ci --prefix api && npm ci --prefix app
+npm ci --prefix api
 npm --prefix api run build
-npm --prefix app run build
 npm --prefix api run migrate:deploy     # never `migrate dev` in production
 npm --prefix api run start:prod         # :3000
-npm --prefix app run serve:ssr:app      # :4000, proxies /api to API_URL
 ```
 
-Put a reverse proxy in front of :4000 terminating TLS. Do **not** expose :3000
-publicly — the SSR server proxies everything the browser needs, and the API's
-write endpoints are behind a single shared password.
+**The app** is built once and the resulting directory is uploaded:
 
-Run both processes under something that restarts them (systemd, PM2, a container
-runtime). `GET /api/health` returns database connectivity and is a working
-readiness probe.
+```bash
+npm ci --prefix app
+npm --prefix app run build              # → app/dist/app
+```
 
-**Still missing, if you want them:** there is no Dockerfile, no compose file that
-runs all three services, and no CI. `api/docker-compose.yml` starts Postgres
-only, on port 5433, and is a development convenience. I can build these — say the
-word.
+`render.yaml` at the repo root describes this as a Render static site, including
+the one piece of host configuration that is not optional: **a rewrite of `/*` to
+`/index.html`**. Angular uses path-based routes, so without it a full page load of
+`/admin/<slug>` — or any browser refresh — asks the host for a file that does not
+exist and gets a 404, while navigation inside the app looks perfectly fine. That
+is how this gets missed until a client reloads the page. Any other static host
+needs the same rule under a different name (`_redirects`, `try_files`, a
+CloudFront error-page mapping).
+
+**The API must now be publicly reachable over TLS.** This reverses the previous
+advice. There is no longer a server in front of it forwarding the browser's
+requests — the browser calls it directly, so it needs its own hostname and
+certificate. Its write endpoints are still behind the shared password, and
+`ORIGIN` still gates which sites may call it at all.
+
+Run the API under something that restarts it (systemd, PM2, a container runtime).
+`GET /api/health` returns database connectivity and is a working readiness probe.
+The static site needs no supervision — there is no process.
+
+Three consequences of the app being static, worth knowing before someone reports
+them as bugs:
+
+- **A missing article answers 200, not 404.** Every path returns the app shell;
+  the router then shows the not-found page. Correct on screen, wrong in the
+  status line, and unfixable client-side.
+- **`sitemap.xml`, `rss.xml` and `robots.txt` live on the API's origin**, not the
+  app's. The footer links point there.
+- **Nothing the app renders is crawlable.** Meta tags and JSON-LD are written
+  after the bundle boots, so a crawler sees an empty shell. This is intended: the
+  app is an operator tool, and the articles are published elsewhere.
+
+**Still missing, if you want them:** there is no Dockerfile, no compose file, and
+no CI. `api/docker-compose.yml` starts Postgres only, on port 5433, and is a
+development convenience. I can build these — say the word.
 
 ---
 

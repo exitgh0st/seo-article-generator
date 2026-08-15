@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Cybersecurity article pipeline: a button-driven generator, an Angular SSR site, and a NestJS backend.",
+  "description": "Cybersecurity article pipeline: a button-driven generator, a static Angular operator app, and a NestJS backend.",
   "scripts": {
     "setup": "npm --prefix api install && npm --prefix app install && npm run db:up && npm --prefix api run migrate:deploy && npm run import",
     "dev": "concurrently -n api,app -c cyan,magenta \"npm:dev:api\" \"npm:dev:app\"",
@@ -15,7 +15,6 @@
     "brief:export": "npm --prefix api run brief:export --",
     "build": "npm --prefix api run build && npm --prefix app run build",
     "test": "npm --prefix api test",
-    "serve:ssr": "npm --prefix app run serve:ssr:app",
     "content": "node scripts/build-content-index.mjs",
     "content:watch": "node scripts/build-content-index.mjs --watch",
     "audit": "npm --prefix api run audit --",
