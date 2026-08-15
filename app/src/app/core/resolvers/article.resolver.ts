@@ -5,8 +5,9 @@ import { ContentService } from '../services/content.service';
 import { Article } from '../models/article.model';
 
 /**
- * Resolves the article before the route activates, so SeoService can write
- * metadata into the server-rendered HTML rather than after hydration.
+ * Resolves the article before the route activates, so the page never flashes an
+ * empty shell and SeoService has the article to describe by the time the
+ * component renders.
  */
 export const articleResolver: ResolveFn<Article | null> = (route) => {
   const content = inject(ContentService);
@@ -20,8 +21,9 @@ export const articleResolver: ResolveFn<Article | null> = (route) => {
 
   return content.article(slug).pipe(
     tap((article) => {
-      // Render the not-found page rather than an empty article shell. The HTTP
-      // status is corrected to 404 in src/server.ts — routing alone cannot set it.
+      // Render the not-found page rather than an empty article shell. The
+      // response is still HTTP 200 — a static host answers every path with the
+      // app shell, and client-side routing cannot set a status code.
       if (!article) router.navigate(['/not-found'], { skipLocationChange: true });
     }),
     catchError(() => of(null)),

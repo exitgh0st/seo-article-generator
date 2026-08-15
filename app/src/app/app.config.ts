@@ -5,7 +5,6 @@ import {
 } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 import { routes } from './app.routes';
 import { ContentSource, ApiContentSource } from './core/services/content-source';
@@ -22,9 +21,9 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
     ),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
-    provideClientHydration(withEventReplay()),
-    // Empty in the browser: same-origin /api. app.config.server.ts overrides this
-    // with an absolute URL, because SSR fetch has no origin to be relative to.
+    // Empty in development — the dev-server proxy forwards a same-origin /api.
+    // Absolute in production, where the app is static files and the API is a
+    // separate origin.
     { provide: API_BASE_URL, useValue: environment.apiUrl },
     { provide: ContentSource, useClass: ApiContentSource },
   ],

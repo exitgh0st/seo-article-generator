@@ -1,16 +1,19 @@
 /**
  * Production.
  *
- * `apiUrl` is empty on purpose. The SSR server in `src/server.ts` forwards
- * `/api`, `/sitemap.xml`, `/rss.xml` and `/robots.txt` to whatever `API_URL`
- * points at, so the browser only ever talks to its own origin and no deployment
- * URL is committed. Set `API_URL` on the Node process, not here.
+ * The app builds to static files, so there is no server of its own to proxy
+ * `/api` through — the browser calls the API cross-origin, by absolute URL.
  *
- * If you ever serve the API from a different origin than the app, set that
- * absolute URL here and add the origin to the API's `ORIGIN` allowlist for CORS —
- * but prefer the proxy, which keeps cookies and CSP simple.
+ * Two things must agree with whatever is set here:
+ *
+ * - The API's `ORIGIN` allowlist must contain the static site's origin, or every
+ *   request fails CORS.
+ * - No trailing slash. `ApiContentSource` and `AuthService` append `/api/...`.
+ *
+ * `sitemap.xml`, `rss.xml` and `robots.txt` are served from this origin too —
+ * the API keeps them at its root rather than under `/api`.
  */
 export const environment = {
   production: true,
-  apiUrl: '',
+  apiUrl: 'https://seo-article-generator-yuf6.onrender.com',
 };

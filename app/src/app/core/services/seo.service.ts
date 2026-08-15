@@ -15,9 +15,14 @@ export interface PageSeo {
 }
 
 /**
- * Sets metadata for the current route. Call from a route resolver or the
- * component constructor so tags are present in the server-rendered HTML —
- * setting them in ngAfterViewInit is too late for a crawler.
+ * Sets metadata for the current route.
+ *
+ * These tags are written into the live DOM after the app boots. The app is a
+ * static bundle with no server rendering, so the HTML a crawler is served
+ * carries none of them — which is fine, because this is an operator tool and
+ * nothing here is meant to be indexed. The tags earn their keep in the browser:
+ * a readable tab title, and a correct preview when an operator pastes an article
+ * link into chat.
  */
 @Injectable({ providedIn: 'root' })
 export class SeoService {

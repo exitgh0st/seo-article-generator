@@ -6,10 +6,8 @@
  * rss.xml. Keep the two in sync — `origin` in particular, since canonical URLs
  * and sitemap URLs must agree.
  *
- * Changing `origin` also means updating `security.allowedHosts` in
- * app/angular.json. Angular's SSR engine rejects any Host header not on that
- * list and silently falls back to client-side rendering, which drops every
- * meta tag from the served HTML.
+ * `origin` is the canonical address articles are published under, which is not
+ * necessarily where this operator app is hosted.
  */
 export const SITE = {
   name: 'Cyber Brief',

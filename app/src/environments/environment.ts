@@ -3,11 +3,11 @@
  * forwards to the Nest API on :3000.
  *
  * `environment.prod.ts` replaces this at build time via the fileReplacements in
- * angular.json, and works the same way: same-origin, with the SSR server
- * proxying to API_URL.
+ * angular.json, and works differently: the production build is static files with
+ * no proxy in front of them, so it names the API's origin in full.
  */
 export const environment = {
   production: false,
-  /** Same-origin in the browser. Empty means "no prefix", not "no API". */
+  /** Same-origin in development. Empty means "no prefix", not "no API". */
   apiUrl: '',
 };

@@ -26,8 +26,8 @@
   <div class="wrap footer-inner">
     <p>&copy; {{ year }} {{ site.name }}. Reporting sourced to primary advisories.</p>
     <p class="footer-links">
-      <a href="/rss.xml">RSS</a>
-      <a href="/sitemap.xml">Sitemap</a>
+      <a [href]="feedBase + '/rss.xml'">RSS</a>
+      <a [href]="feedBase + '/sitemap.xml'">Sitemap</a>
     </p>
   </div>
 </footer>

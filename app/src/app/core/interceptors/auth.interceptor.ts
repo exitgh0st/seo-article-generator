@@ -3,9 +3,10 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { API_BASE_URL } from '../api.config';
 
 /**
- * Attaches the bearer token to same-origin API calls and signs out on a 401.
+ * Attaches the bearer token to API calls and signs out on a 401.
  *
  * Public article reads work without it — the token only widens what the API
  * returns (drafts) and unlocks the write routes.
@@ -13,10 +14,13 @@ import { AuthService } from '../services/auth.service';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const base = inject(API_BASE_URL);
   const token = auth.token();
 
-  // Never attach the token to a third-party URL.
-  const isApiCall = req.url.startsWith('/api') || req.url.includes('/api/');
+  // Never attach the token to a third-party URL. The API is cross-origin in
+  // production, so this has to match the configured base exactly rather than
+  // looking for "/api" anywhere in the URL — any host can put that in a path.
+  const isApiCall = req.url.startsWith(`${base}/api`);
 
   const request =
     token && isApiCall
