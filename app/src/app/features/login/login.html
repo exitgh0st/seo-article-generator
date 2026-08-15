@@ -1,0 +1,27 @@
+<section class="login">
+  <h2 class="login__title">Sign in</h2>
+  <p class="login__hint">The editor is behind this password.</p>
+
+  <form class="login__form" (ngSubmit)="submit()">
+    <label class="login__label" for="password">Password</label>
+    <input
+      id="password"
+      type="password"
+      name="password"
+      autocomplete="current-password"
+      class="login__input"
+      [ngModel]="password()"
+      (ngModelChange)="password.set($event)"
+      [disabled]="busy()"
+      autofocus
+    />
+
+    @if (error(); as message) {
+      <p class="login__error" role="alert">{{ message }}</p>
+    }
+
+    <button type="submit" class="login__button" [disabled]="busy() || !password()">
+      {{ busy() ? 'Signing in…' : 'Sign in' }}
+    </button>
+  </form>
+</section>

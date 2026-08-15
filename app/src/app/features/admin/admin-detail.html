@@ -1,0 +1,209 @@
+@if (article(); as a) {
+  <div class="wrap admin">
+    <nav class="crumb"><a routerLink="/admin">← All articles</a></nav>
+
+    <header class="page-head">
+      <div class="meta-line">
+        <span class="badge" [class]="a.status === 'published' ? 'badge--ok' : 'badge--muted'">
+          {{ a.status }}
+        </span>
+        <span>{{ labels[a.category] }}</span>
+        <span aria-hidden="true">·</span>
+        <span>{{ a.wordCount }} words</span>
+        <span aria-hidden="true">·</span>
+        <span>{{ a.readingTime }} min</span>
+        <span aria-hidden="true">·</span>
+        <span>{{ a.sources.length }} sources</span>
+      </div>
+      <h1>{{ a.title }}</h1>
+      <p>{{ a.description }}</p>
+      <p class="meta-line">
+        <a [routerLink]="['/article', a.slug]">View public page →</a>
+      </p>
+      <p class="page-head__actions">
+        @if (!editing()) {
+          <button type="button" class="cta cta--ghost" [disabled]="busy()" (click)="startEditing()">
+            {{ busy() ? 'Opening…' : 'Edit' }}
+          </button>
+        }
+        @if (a.status !== 'published') {
+          <a class="cta" [routerLink]="['/admin', a.slug, 'publish']">Publish…</a>
+        }
+      </p>
+    </header>
+
+    @if (error()) {
+      <p class="alert alert--danger">{{ error() }}</p>
+    }
+    @if (saved() && !editing()) {
+      <p class="alert">Saved. The score below has been recalculated.</p>
+    }
+
+    @if (editing()) {
+      <section class="editor">
+        <h2 class="section-label">Editing</h2>
+
+        <label class="field">
+          <span class="field__label">Headline</span>
+          <span class="field__hint">The heading a reader sees on the page.</span>
+          <input
+            type="text"
+            name="headline"
+            [ngModel]="headline()"
+            (ngModelChange)="headline.set($event)"
+            [disabled]="busy()"
+          />
+        </label>
+
+        <label class="field">
+          <span class="field__label">Search description</span>
+          <span class="field__hint">
+            The sentence shown under the title in Google. It needs to be between
+            150 and 160 characters.
+          </span>
+          <input
+            type="text"
+            name="description"
+            [ngModel]="description()"
+            (ngModelChange)="description.set($event)"
+            [disabled]="busy()"
+          />
+          <span [class]="descriptionClass()">{{ description().length }} / 150–160</span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Article text</span>
+          <span class="field__hint">
+            Markdown. Headings start with <code>##</code>. Leave the links alone
+            unless you are replacing one.
+          </span>
+          <textarea
+            class="body"
+            name="body"
+            [ngModel]="bodyText()"
+            (ngModelChange)="bodyText.set($event)"
+            [disabled]="busy()"
+          ></textarea>
+        </label>
+
+        <div class="editor__actions">
+          <button type="button" class="cta" [disabled]="!dirty() || busy()" (click)="save()">
+            {{ busy() ? 'Saving…' : 'Save changes' }}
+          </button>
+          <button type="button" class="linkish" [disabled]="busy()" (click)="cancel()">
+            Done editing
+          </button>
+          @if (!dirty()) {
+            <span class="muted" style="font-size: 0.8rem">Nothing changed yet.</span>
+          }
+        </div>
+      </section>
+    }
+
+    @if (a.seoBlocking.length) {
+      <div class="alert">
+        <strong>Blocked from publication.</strong> Required rubric rows failed:
+        <ul>
+          @for (b of a.seoBlocking; track b) {
+            <li>{{ b }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="detail-layout">
+      <div class="preview">
+        <h2 class="section-label">Preview</h2>
+        <div class="prose" [innerHTML]="body()"></div>
+      </div>
+
+      <aside class="inspector">
+        <section>
+          <h2 class="section-label">
+            SEO — {{ passed() }}/{{ a.seoMax }}
+          </h2>
+          <ul class="rubric">
+            @for (row of a.seoBreakdown; track row.n) {
+              <li [class]="'rubric--' + row.status">
+                <span class="rubric-icon" aria-hidden="true">{{ rowIcon(row.status) }}</span>
+                <span class="rubric-body">
+                  <strong>
+                    {{ row.name }}
+                    @if (row.required) {
+                      <span class="req" title="Required">*</span>
+                    }
+                  </strong>
+                  <span class="rubric-detail">{{ row.detail }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="section-label">Keywords</h2>
+          <dl class="fields">
+            <dt>Primary</dt>
+            <dd><code>{{ a.primaryKeyword }}</code></dd>
+            <dt>Secondary</dt>
+            <dd>
+              @for (k of a.secondaryKeywords; track k) {
+                <code>{{ k }}</code>
+              }
+            </dd>
+          </dl>
+        </section>
+
+        <section>
+          <h2 class="section-label">Frontmatter</h2>
+          <dl class="fields">
+            <dt>Slug</dt>
+            <dd><code>{{ a.slug }}</code></dd>
+            <dt>Author</dt>
+            <dd>{{ a.author.name }}{{ a.author.title ? ' · ' + a.author.title : '' }}</dd>
+            <dt>Published</dt>
+            <dd>{{ a.publishedAt | date: 'mediumDate' }}</dd>
+            <dt>Updated</dt>
+            <dd>{{ a.updatedAt | date: 'mediumDate' }}</dd>
+            <dt>Tags</dt>
+            <dd>
+              @for (t of a.tags; track t) {
+                <code>{{ t }}</code>
+              }
+            </dd>
+            @if (a.cves?.length) {
+              <dt>CVEs</dt>
+              <dd>
+                @for (c of a.cves; track c) {
+                  <code>{{ c }}</code>
+                }
+              </dd>
+            }
+          </dl>
+        </section>
+
+        <section>
+          <h2 class="section-label">Sources</h2>
+          <ol class="source-list">
+            @for (s of a.sources; track s.url) {
+              <li>
+                <a [href]="s.url" target="_blank" rel="noopener noreferrer">{{ s.title }}</a>
+                <span class="source-meta">
+                  {{ s.publisher }} · Tier {{ s.tier }} · {{ s.accessedAt | date: 'mediumDate' }}
+                </span>
+              </li>
+            }
+          </ol>
+        </section>
+      </aside>
+    </div>
+  </div>
+} @else {
+  <div class="wrap">
+    <header class="page-head">
+      <h1>Article not found</h1>
+      <p>No article with that slug exists in the content index.</p>
+    </header>
+    <p><a routerLink="/admin">← All articles</a></p>
+  </div>
+}

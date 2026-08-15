@@ -1,0 +1,122 @@
+<div class="wrap admin">
+  <header class="page-head">
+    <h1>Articles</h1>
+    <p>
+      Start one with <strong>New article</strong>, review the draft it produces,
+      then publish it. Nothing goes live until you say so.
+    </p>
+    <p class="page-head__actions">
+      <a routerLink="/admin/new" class="cta">New article</a>
+      <button type="button" class="linkish" (click)="signOut()">Sign out</button>
+    </p>
+  </header>
+
+  @if (stats(); as s) {
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-value">{{ s.total }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.byStatus['published'] ?? 0 }}</span>
+        <span class="stat-label">Published</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.byStatus['review'] ?? 0 }}</span>
+        <span class="stat-label">In review</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.byStatus['draft'] ?? 0 }}</span>
+        <span class="stat-label">Drafts</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.averageScore }}</span>
+        <span class="stat-label">Avg SEO</span>
+      </div>
+      <div class="stat" [class.stat--alert]="s.blocked > 0">
+        <span class="stat-value">{{ s.blocked }}</span>
+        <span class="stat-label">Blocked</span>
+      </div>
+    </div>
+  }
+
+  <div class="filters">
+    <input
+      type="search"
+      placeholder="Search title, slug, keyword, tag, CVE…"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      aria-label="Search articles"
+    />
+
+    <select [ngModel]="status()" (ngModelChange)="status.set($event)" aria-label="Filter by status">
+      <option value="">All statuses</option>
+      @for (s of statuses; track s) {
+        <option [value]="s">{{ s }}</option>
+      }
+    </select>
+
+    <select
+      [ngModel]="category()"
+      (ngModelChange)="category.set($event)"
+      aria-label="Filter by category"
+    >
+      <option value="">All categories</option>
+      @for (c of categories; track c) {
+        <option [value]="c">{{ labels[c] }}</option>
+      }
+    </select>
+
+    <select [ngModel]="sort()" (ngModelChange)="sort.set($event)" aria-label="Sort by">
+      <option value="publishedAt">Newest first</option>
+      <option value="title">Title A–Z</option>
+      <option value="seoScore">SEO score</option>
+      <option value="wordCount">Word count</option>
+    </select>
+
+    <button type="button" (click)="reset()">Reset</button>
+  </div>
+
+  @if (filtered().length) {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Category</th>
+            <th class="num">Words</th>
+            <th class="num">SEO</th>
+            <th class="num">Sources</th>
+            <th>Published</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of filtered(); track a.slug) {
+            <tr>
+              <td>
+                <a class="row-title" [routerLink]="['/admin', a.slug]">{{ a.title }}</a>
+                <span class="row-slug">{{ a.slug }}</span>
+              </td>
+              <td><span class="badge" [class]="statusClass(a.status)">{{ a.status }}</span></td>
+              <td>{{ labels[a.category] }}</td>
+              <td class="num">{{ a.wordCount }}</td>
+              <td class="num">
+                <span class="badge" [class]="scoreClass(a)">{{ a.seoScore }}/{{ a.seoMax }}</span>
+              </td>
+              <td class="num">{{ a.sourceCount }}</td>
+              <td>{{ a.publishedAt | date: 'mediumDate' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (all().length) {
+    <div class="empty">No articles match those filters.</div>
+  } @else {
+    <div class="empty">
+      <p><strong>No articles yet.</strong></p>
+      <p>Press <strong>New article</strong> above to write your first one.</p>
+    </div>
+  }
+</div>

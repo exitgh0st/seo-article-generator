@@ -1,0 +1,101 @@
+<div class="wrap admin">
+  @if (run(); as r) {
+    <header class="page-head">
+      <h1>{{ r.topic }}</h1>
+      <p class="meta-line">
+        @if (active()) {
+          Working. This page updates itself.
+        } @else if (awaitingAngle()) {
+          Waiting for you to choose an angle.
+        } @else if (finished()) {
+          Finished. Review it before publishing.
+        } @else {
+          Stopped.
+        }
+      </p>
+      <p class="page-head__actions">
+        <a routerLink="/admin" class="linkish">← All articles</a>
+      </p>
+    </header>
+
+    @if (active()) {
+      <div class="progress" role="status" aria-label="Working"><span></span></div>
+    }
+
+    @if (error()) {
+      <p class="alert alert--danger">{{ error() }}</p>
+    }
+
+    <!-- The angle choice. The one decision the operator makes. -->
+    @if (awaitingAngle() && r.angleOptions?.length) {
+      <section class="choice">
+        <h2>Which angle should this article take?</h2>
+        <p class="muted">
+          Same facts, different story. Pick the one your readers need.
+        </p>
+
+        <div class="choice__list">
+          @for (angle of r.angleOptions; track angle.title; let i = $index) {
+            <article class="choice__card">
+              <h3>{{ angle.title }}</h3>
+              <p>{{ angle.summary }}</p>
+              <p class="choice__meta">Targets the search “{{ angle.primaryKeyword }}”</p>
+              <button type="button" class="cta" [disabled]="busy()" (click)="chooseAngle(i)">
+                Choose this angle
+              </button>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- The timeline. All six rows exist from the start, so the shape of the
+         work is visible before any of it has happened. -->
+    <section class="stages">
+      <h2 class="section-label">Progress</h2>
+      <ol class="stage-list">
+        @for (stage of r.stages; track stage.id) {
+          <li class="stage" [class]="stageClass(stage)">
+            <span class="stage__dot" aria-hidden="true"></span>
+            <div class="stage__body">
+              <p class="stage__name">{{ stage.label }}</p>
+              <p class="stage__note">{{ stageNote(stage) }}</p>
+
+              @if (stage.status === 'failed') {
+                @if (stage.errorKind === 'refusal') {
+                  <div class="advice">
+                    <strong>The AI declined this topic.</strong>
+                    <p>{{ stage.error }}</p>
+                  </div>
+                } @else {
+                  <p class="stage__error">{{ stage.error }}</p>
+                }
+
+                <button type="button" class="cta cta--ghost" [disabled]="busy()" (click)="retry(stage)">
+                  Try this step again
+                </button>
+                <p class="stage__hint">
+                  Anything after this step runs again too.
+                </p>
+              }
+            </div>
+          </li>
+        }
+      </ol>
+    </section>
+
+    @if (finished() && r.articleSlug) {
+      <section class="done">
+        <h2>Ready for review</h2>
+        <p>Read it, change anything you want, then publish when you are happy.</p>
+        <p class="page-head__actions">
+          <a class="cta" [routerLink]="['/admin', r.articleSlug]">Open the article</a>
+        </p>
+      </section>
+    }
+  } @else if (error()) {
+    <p class="alert alert--danger">{{ error() }}</p>
+  } @else {
+    <p class="empty">Loading…</p>
+  }
+</div>

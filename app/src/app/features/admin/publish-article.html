@@ -1,0 +1,87 @@
+<div class="wrap admin">
+  <header class="page-head">
+    <h1>Publish “{{ slug }}”</h1>
+    <p>
+      Publishing puts this article on the public site at
+      <code>/article/{{ slug }}</code>. Search engines will find it.
+    </p>
+    <p class="page-head__actions">
+      <a class="linkish" [routerLink]="['/admin', slug]">← Back to the article</a>
+    </p>
+  </header>
+
+  @if (error()) {
+    <p class="alert alert--danger">{{ error() }}</p>
+  }
+
+  @if (published()) {
+    <section class="done">
+      <h2>Published</h2>
+      <p>It is live now, and a copy has been written back to the repository.</p>
+      <p class="page-head__actions">
+        <button type="button" class="cta" (click)="viewPublic()">View it on the site</button>
+        <a class="linkish" routerLink="/admin">Back to all articles</a>
+      </p>
+    </section>
+  } @else if (checking()) {
+    <p class="empty">Checking the article…</p>
+  } @else if (report(); as r) {
+    @if (r.ok) {
+      <p class="alert">Everything checks out. This article is ready to go live.</p>
+    } @else {
+      <div class="blockers">
+        <h2 class="section-label">Not ready yet</h2>
+        <ul>
+          @for (b of r.blockers; track b) {
+            <li>{{ b }}</li>
+          }
+        </ul>
+        <p class="muted">
+          Fix these on the article page, then come back. The button stays off
+          until they are resolved.
+        </p>
+      </div>
+    }
+
+    @if (r.warnings.length) {
+      <div class="warnings">
+        <h2 class="section-label">Worth knowing</h2>
+        <ul>
+          @for (w of r.warnings; track w) {
+            <li>{{ w }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <section class="stages">
+      <h2 class="section-label">Every source was just checked</h2>
+      <ul class="check-list">
+        @for (c of r.sourceChecks; track c.url) {
+          <li class="check" [class]="c.ok ? 'check--ok' : 'check--bad'">
+            <span class="check__mark" aria-hidden="true">{{ c.ok ? '✓' : '✕' }}</span>
+            <span>
+              <span class="check__url">{{ c.url }}</span>
+              @if (!c.ok) {
+                <br /><span class="muted">{{ c.detail || 'did not respond' }}</span>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+      <p class="muted" style="font-size: 0.8rem; margin-top: 0.75rem">
+        A dead link in a published article is worse than a delay, so any source
+        that does not respond blocks publication.
+      </p>
+    </section>
+
+    <p class="page-head__actions">
+      <button type="button" class="cta" [disabled]="!canPublish()" (click)="publish()">
+        {{ busy() ? 'Publishing…' : 'Publish this article' }}
+      </button>
+      <button type="button" class="linkish" (click)="check()" [disabled]="busy()">
+        Check again
+      </button>
+    </p>
+  }
+</div>

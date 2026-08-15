@@ -1,0 +1,83 @@
+<div class="wrap admin">
+  <header class="page-head">
+    <h1>New article</h1>
+    <p>
+      Describe the story. The next screen finds and reads the sources, then asks
+      you to pick an angle.
+    </p>
+    <p class="page-head__actions">
+      <a routerLink="/admin" class="linkish">← Back to articles</a>
+    </p>
+  </header>
+
+  @if (error()) {
+    <p class="alert alert--danger">{{ error() }}</p>
+  }
+
+  <form class="form" (ngSubmit)="start()">
+    <label class="field">
+      <span class="field__label">What is the story?</span>
+      <span class="field__hint">
+        Name the vendor and product, or the CVE. For example: “Progress Kemp
+        LoadMaster command injection being exploited”.
+      </span>
+      <textarea
+        rows="3"
+        [ngModel]="topic()"
+        (ngModelChange)="topic.set($event)"
+        name="topic"
+        placeholder="Name the vendor, product, or CVE"
+        [disabled]="busy()"
+      ></textarea>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Category</span>
+      <select
+        [ngModel]="category()"
+        (ngModelChange)="category.set($event)"
+        name="category"
+        [disabled]="busy()"
+      >
+        @for (c of categories; track c) {
+          <option [value]="c">{{ labels[c] }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Search phrase <span class="field__optional">optional</span></span>
+      <span class="field__hint">
+        The words a reader would type into Google. Leave this blank and one is
+        chosen for you when you pick the angle.
+      </span>
+      <input
+        type="text"
+        [ngModel]="primaryKeyword()"
+        (ngModelChange)="primaryKeyword.set($event)"
+        name="primaryKeyword"
+        placeholder="e.g. progress loadmaster"
+        [disabled]="busy()"
+      />
+    </label>
+
+    <div class="form__actions">
+      <button type="submit" class="cta" [disabled]="!canSubmit()">
+        {{ busy() ? 'Starting…' : 'Start writing' }}
+      </button>
+      @if (topic().trim().length > 0 && topic().trim().length < 8) {
+        <span class="muted">Add a little more detail about the story.</span>
+      }
+    </div>
+  </form>
+
+  <section class="note">
+    <h2>What happens next</h2>
+    <ol class="note__steps">
+      <li>Sources are found and read. This takes about a minute.</li>
+      <li>You choose one of two or three angles.</li>
+      <li>The article is written, edited so it does not read as AI, and checked.</li>
+      <li>It stops for you to review. Nothing is published without you.</li>
+    </ol>
+  </section>
+</div>
