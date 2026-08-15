@@ -1,0 +1,118 @@
+@if (article(); as a) {
+  <article class="wrap article">
+    <header class="article-head">
+      <div class="meta-line">
+        <a class="badge" [routerLink]="['/category', a.category]">{{ labels[a.category] }}</a>
+        @if (a.status !== 'published') {
+          <span class="badge badge--warn">{{ a.status }}</span>
+        }
+        <time [attr.datetime]="a.publishedAt">{{ a.publishedAt | date: 'longDate' }}</time>
+        <span aria-hidden="true">·</span>
+        <span>{{ a.readingTime }} min read</span>
+        @if (a.updatedAt !== a.publishedAt) {
+          <span aria-hidden="true">·</span>
+          <span>Updated {{ a.updatedAt | date: 'mediumDate' }}</span>
+        }
+      </div>
+
+      <h1>{{ a.headline || a.title }}</h1>
+      <p class="standfirst">{{ a.description }}</p>
+
+      <div class="byline">
+        <span>By <strong>{{ a.author.name }}</strong></span>
+        @if (a.author.title) {
+          <span class="byline-title">{{ a.author.title }}</span>
+        }
+      </div>
+
+      @if (a.heroImage) {
+        <img class="hero" [src]="a.heroImage.src" [alt]="a.heroImage.alt" />
+      }
+    </header>
+
+    <div class="article-layout">
+      <aside class="sidebar">
+        @if (toc().length > 1) {
+          <nav class="toc" aria-label="On this page">
+            <h2>On this page</h2>
+            <ol>
+              @for (h of toc(); track h.id) {
+                <li><a [href]="'#' + h.id">{{ h.text }}</a></li>
+              }
+            </ol>
+          </nav>
+        }
+
+        @if (a.cves?.length) {
+          <div class="sidebar-block">
+            <h2>CVEs</h2>
+            <ul class="cve-list">
+              @for (cve of a.cves; track cve) {
+                <li>
+                  <a
+                    [href]="'https://nvd.nist.gov/vuln/detail/' + cve"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >{{ cve }}</a
+                  >
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </aside>
+
+      <div class="prose" [innerHTML]="body()"></div>
+    </div>
+
+    <section class="sources" aria-labelledby="sources-heading">
+      <h2 id="sources-heading">Sources</h2>
+      <p class="sources-note">
+        {{ a.sources.length }} sources, {{ tier1Count() }} primary. Every factual claim above traces
+        to one of these.
+      </p>
+      <ol>
+        @for (s of a.sources; track s.url) {
+          <li>
+            <a [href]="s.url" target="_blank" rel="noopener noreferrer">{{ s.title }}</a>
+            <span class="source-meta">
+              {{ s.publisher }}
+              <span class="badge badge--muted">Tier {{ s.tier }}</span>
+              accessed {{ s.accessedAt | date: 'mediumDate' }}
+            </span>
+          </li>
+        }
+      </ol>
+    </section>
+
+    @if (a.tags.length) {
+      <nav class="tags" aria-label="Tags">
+        @for (tag of a.tags; track tag) {
+          <a class="badge badge--muted" [routerLink]="['/tag', tag]">#{{ tag }}</a>
+        }
+      </nav>
+    }
+
+    @if (related().length) {
+      <section class="related" aria-labelledby="related-heading">
+        <h2 id="related-heading">Related</h2>
+        <ul>
+          @for (r of related(); track r.slug) {
+            <li>
+              <a [routerLink]="['/article', r.slug]">{{ r.title }}</a>
+              <span class="related-meta">{{ labels[r.category] }} · {{ r.readingTime }} min</span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </article>
+} @else {
+  <div class="wrap">
+    <header class="page-head">
+      <h1>Article not found</h1>
+      <p>No article exists at this address, or it hasn't been published yet.</p>
+    </header>
+    <p><a routerLink="/">Back to the latest articles</a></p>
+  </div>
+}
