@@ -88,8 +88,29 @@ Paste the hash into `ADMIN_PASSWORD_HASH`. Generate `JWT_SECRET` with
 
 Auth is a single shared password with a 7-day JWT and no user table. That is
 appropriate for one or two operators and inappropriate for a team that will grow;
-say so now rather than after the client adds five people. Rotating `JWT_SECRET`
-is the only way to invalidate issued tokens.
+say so now rather than after the client adds five people.
+
+**`ADMIN_PASSWORD_HASH` seeds the password; it does not hold it.** The first time
+the API needs the credential it copies the hash into the `AdminCredential` row and
+reads that row from then on. After the operator changes their password through the
+app, the environment variable is inert — editing it and redeploying does nothing,
+which is the one genuinely surprising thing in this section.
+
+The operator changes it at **`/admin/password`**, reachable from the link beside
+"Sign out" on the admin list. Doing so signs out every other device: the row
+records `passwordChangedAt`, and the JWT strategy rejects any token whose `iat`
+predates it. That, not rotating `JWT_SECRET`, is now the way to invalidate issued
+tokens — though rotating the secret still works and invalidates them regardless of
+when they were issued.
+
+If the password is forgotten there is no reset link and no email on file. Recover
+it from the server:
+
+```bash
+npm --prefix api run password:reset -- "a new password"
+```
+
+That writes the row directly and bumps `passwordChangedAt`, so every session ends.
 
 ---
 
@@ -100,7 +121,7 @@ Everything the API needs, and nothing more:
 ```bash
 DATABASE_URL=postgresql://user:pass@host:5432/seo_articles?schema=public
 JWT_SECRET=<openssl rand -hex 32>
-ADMIN_PASSWORD_HASH=<npm run hash:password>
+ADMIN_PASSWORD_HASH=<npm run hash:password>  # seeds the first password only
 ORIGIN=https://admin.theclientdomain.com  # CORS allowlist — the app's origin
 SITE_ORIGIN=https://theclientdomain.com   # canonical URLs, sitemap, rss
 CONTENT_DIR=/var/lib/cyberbrief/content   # only if you mounted a volume
