@@ -35,6 +35,23 @@ export class AuthService {
       .pipe(tap((res) => this.setToken(res.token)));
   }
 
+  /**
+   * Changing the password invalidates every token the API has issued, including
+   * the one in this tab. The response carries a replacement, so storing it here
+   * is what keeps the operator who made the change signed in.
+   */
+  changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${this.base}/api/auth/password`, {
+        currentPassword,
+        newPassword,
+      })
+      .pipe(tap((res) => this.setToken(res.token)));
+  }
+
   logout(): void {
     this.setToken(null);
   }
