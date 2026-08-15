@@ -138,6 +138,19 @@ tbody tr:hover { background: var(--bg-subtle); }
 .inspector {
   position: sticky;
   top: 5.5rem;
+  /* Sticky with no height bound is how the last rubric row became unreachable: a
+     pinned element gets no scrollbar of its own, so everything past the viewport
+     floor stays there however far the page scrolls. The rubric is a fixed fifteen
+     rows and three sections follow it, which is reliably taller than the space
+     between the header and the bottom of the screen. 5.5rem is the offset above;
+     1.5rem leaves a gutter below. */
+  max-height: calc(100vh - 5.5rem - 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* The scrollbar sits in the padding rather than over the text, and the negative
+     margin gives that padding back to the 21rem grid track. */
+  padding-right: 0.6rem;
+  margin-right: -0.6rem;
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
@@ -205,7 +218,15 @@ tbody tr:hover { background: var(--bg-subtle); }
 
 @media (max-width: 1000px) {
   .detail-layout { grid-template-columns: 1fr; }
-  .inspector { position: static; }
+  /* One column, so the panel scrolls inline with the page and needs none of the
+     bounding the pinned desktop version does. */
+  .inspector {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+    margin-right: 0;
+  }
 }
 
 .page-head__actions {
