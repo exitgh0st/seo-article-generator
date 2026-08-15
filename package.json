@@ -1,0 +1,36 @@
+{
+  "name": "seo-article-generator",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Cybersecurity article pipeline: a button-driven generator, an Angular SSR site, and a NestJS backend.",
+  "scripts": {
+    "setup": "npm --prefix api install && npm --prefix app install && npm run db:up && npm --prefix api run migrate:deploy && npm run import",
+    "dev": "concurrently -n api,app -c cyan,magenta \"npm:dev:api\" \"npm:dev:app\"",
+    "dev:api": "npm --prefix api run start:dev",
+    "dev:app": "npm --prefix app start",
+    "db:up": "npm --prefix api run db:up",
+    "db:down": "npm --prefix api run db:down",
+    "import": "npm --prefix api run import:content --",
+    "brief:export": "npm --prefix api run brief:export --",
+    "build": "npm --prefix api run build && npm --prefix app run build",
+    "test": "npm --prefix api test",
+    "serve:ssr": "npm --prefix app run serve:ssr:app",
+    "content": "node scripts/build-content-index.mjs",
+    "content:watch": "node scripts/build-content-index.mjs --watch",
+    "audit": "npm --prefix api run audit --",
+    "publish": "npm --prefix api run publish --",
+    "article:export": "npm --prefix api run article:export --",
+    "humanize": "npm --prefix api run humanize --"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
