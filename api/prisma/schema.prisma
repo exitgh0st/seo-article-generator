@@ -208,3 +208,18 @@ model GenerationStage {
   @@unique([runId, name])
   @@index([runId, ordinal])
 }
+
+/// The admin password, so it can be changed from the app rather than by editing
+/// an environment variable and redeploying. `ADMIN_PASSWORD_HASH` seeds this row
+/// the first time it is read and is ignored from then on — DEPLOYMENT.md carries
+/// the recovery path for a forgotten password.
+model AdminCredential {
+  /// Always 1. There is one operator, so this is a row rather than a table of users.
+  id           Int    @id @default(1)
+  /// bcrypt, cost 12 — the same as scripts/hash-password.mjs produces.
+  passwordHash String
+  /// Tokens issued before this instant are rejected, so changing the password
+  /// signs out every other device. Compared against the JWT's `iat` claim.
+  passwordChangedAt DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

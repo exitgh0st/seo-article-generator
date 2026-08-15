@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { AuthService } from './auth.service';
 import type { Env } from '../config/env.schema';
 
 export interface AuthenticatedUser {
@@ -15,7 +16,14 @@ export interface JwtPayload {
 }
 
 /**
- * Verifies tokens this API issued itself (HS256 over JWT_SECRET).
+ * Verifies tokens this API issued itself (HS256 over JWT_SECRET), then checks
+ * them against the password's last change.
+ *
+ * The second half is not decoration. Tokens are stateless and last seven days, so
+ * without it changing the password would leave every session already open still
+ * working — including the one on the device the change was meant to lock out.
+ * `AuthService.assertTokenFresh` compares the `iat` claim against
+ * AdminCredential.passwordChangedAt and rejects anything older.
  *
  * budgetwise-api verifies Supabase-issued ES256 tokens against a JWKS endpoint
  * because it is genuinely multi-user. This tool has one operator, so a Supabase
@@ -24,7 +32,10 @@ export interface JwtPayload {
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(config: ConfigService<Env, true>) {
+  constructor(
+    config: ConfigService<Env, true>,
+    private readonly auth: AuthService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -33,7 +44,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload): AuthenticatedUser {
+  async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
+    await this.auth.assertTokenFresh(payload);
     return { userId: payload.sub };
   }
 }

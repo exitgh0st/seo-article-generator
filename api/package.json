@@ -23,6 +23,7 @@
     "brief:export": "ts-node -P tsconfig.json scripts/export-brief.ts",
     "article:export": "ts-node -P tsconfig.json scripts/export-article.ts",
     "hash:password": "node scripts/hash-password.mjs",
+    "password:reset": "ts-node -P tsconfig.json scripts/reset-password.ts",
     "audit": "ts-node -P tsconfig.json scripts/audit-article.ts",
     "publish": "ts-node -P tsconfig.json scripts/publish-article.ts",
     "humanize": "ts-node -P tsconfig.json scripts/humanize-articles.ts"
