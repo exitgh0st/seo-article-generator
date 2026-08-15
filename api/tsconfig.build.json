@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  // Scoped to src so rootDir is src/ and the entry point lands at dist/main.js.
+  // Without this, prisma.config.ts and scripts/ pull the common root up to api/,
+  // and the output nests under dist/src/ — which is why `node dist/main` fails.
+  // (budgetwise-api has the same latent problem; it only ever runs `nest start`.)
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}

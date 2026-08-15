@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enum-valued columns (category, status, phase, role, tier) are stored as String
+// rather than Prisma enums on purpose. Two of the categories — `threat-intel` and
+// `ai-security` — contain hyphens, which are not valid Prisma enum identifiers, so
+// a Prisma enum would force a @map and a translation layer at every boundary. The
+// wire format has to match docs/frontmatter-schema.md byte for byte, since these
+// values round-trip into YAML frontmatter and into the Angular model's string
+// unions. Validation lives in seo/article-validation.service.ts, which every write
+// path goes through — the generation pipeline, the admin UI, and the importer.
+
+/// A finished or in-progress article. Mirrors the frontmatter schema plus the
+/// fields scripts/build-content-index.mjs used to compute at build time.
+model Article {
+  id                String   @id @default(uuid())
+  slug              String   @unique
+  title             String
+  headline          String?
+  description       String
+  primaryKeyword    String
+  secondaryKeywords String[]
+  /// vulnerabilities | breaches | ransomware | threat-intel | policy | ai-security
+  category          String
+  tags              String[]
+  authorName        String
+  authorTitle       String?
+  /// YYYY-MM-DD. Set once at first publication and never reset — Google distrusts
+  /// a changed publication date on existing content.
+  publishedAt       String
+  /// YYYY-MM-DD. Bumped on every substantive edit.
+  updatedAt         String
+  /// draft | review | published
+  status            String   @default("draft")
+  heroImageSrc      String?
+  heroImageAlt      String?
+  cves              String[]
+  canonical         String   @default("")
+
+  /// Markdown body only, no frontmatter. Starts at H2 — an H1 here is a validation failure.
+  body String
+  /// Rendered from `body` on every save, with the same markdown-it config as the build script.
+  html String?
+
+  wordCount   Int  @default(0)
+  readingTime Int  @default(1)
+  /// { level, text, id }[] for the table of contents.
+  headings    Json @default("[]")
+
+  seoScore     Int      @default(0)
+  seoMax       Int      @default(15)
+  /// SeoRow[] — { n, name, status, detail, required }
+  seoBreakdown Json     @default("[]")
+  /// Names of required rows currently failing. Non-empty blocks publication.
+  seoBlocking  String[]
+
+  /// Source[] — { title, url, publisher, tier, accessedAt }. Stored as JSON rather
+  /// than a relation because it is only ever read and written as a whole block that
+  /// mirrors the frontmatter shape exactly.
+  sources Json @default("[]")
+
+  briefId String?
+  brief   ResearchBrief? @relation(fields: [briefId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime @default(now())
+  /// Row mtime. Distinct from `updatedAt`, which is the editorial date string.
+  recordUpdatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([briefId])
+  @@index([category])
+}
+
+/// The frozen fact set produced by the research phase. The writing phase works
+/// only from this — that separation is the whole point of the pipeline.
+model ResearchBrief {
+  id           String @id @default(uuid())
+  /// <YYYY-MM-DD>-<topic-slug>, matching content/research/ filenames.
+  slug         String @unique
+  topic        String
+  /// YYYY-MM-DD
+  researchedAt String
+  /// ready | needs-follow-up
+  status       String @default("ready")
+  /// The brief itself, in the template from .claude/skills/research/SKILL.md.
+  markdown     String
+
+  sources  ResearchSource[]
+  articles Article[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A page actually fetched during research, with its extracted text retained.
+///
+/// Keeping `rawContent` is what makes "never invent a fact" checkable rather than
+/// merely instructed: saving or publishing an article is refused when it carries a
+/// CVE identifier or an indicator of compromise that appears in none of these.
+///
+/// It is populated on import from the sidecar a research session writes to
+/// `content/research/<slug>.sources/`. A brief that arrives without one imports
+/// with empty text and its articles are not gated — the check reports honestly
+/// that it could verify nothing, rather than passing as though it had.
+model ResearchSource {
+  id         String        @id @default(uuid())
+  briefId    String
+  brief      ResearchBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  url        String
+  title      String
+  publisher  String
+  /// 1 = primary/vendor/government, 2 = credible outlet, 3 = aggregator. See docs/sources.md.
+  tier       Int
+  /// YYYY-MM-DD the page was fetched. Security advisories get silently revised.
+  accessedAt String
+  rawContent String
+  createdAt  DateTime      @default(now())
+
+  @@index([briefId])
+  @@index([url])
+}
+
+/// One article generation, from a topic to a reviewable draft.
+///
+/// The pipeline is six discrete stages rather than one model call or one agent
+/// loop, and the stage rows below are what makes the difference visible: progress
+/// that means something, retry of a single step, and a cost figure per step.
+///
+/// `awaiting_input` is the state that makes this a button-driven flow rather than
+/// an unattended one. The run parks there after `angle`, and the worker skips it
+/// until a person chooses.
+model GenerationRun {
+  id           String  @id @default(uuid())
+  /// pending | running | awaiting_input | succeeded | failed
+  status       String  @default("pending")
+  /// Name of the stage currently running, for the timeline header.
+  currentStage String?
+
+  /// What the operator typed on /admin/new.
+  topic          String
+  primaryKeyword String?
+  category       String
+
+  /// The angle the operator picked, once they have. Shape: { title, summary, primaryKeyword }.
+  chosenAngle  Json?
+  /// Angles offered, so the choice screen survives a page reload.
+  angleOptions Json?
+
+  /// Set as the run produces them.
+  briefSlug   String?
+  articleSlug String?
+
+  /// Failure that stopped the whole run, as opposed to a single stage's error.
+  error        String?
+  inputTokens  Int     @default(0)
+  outputTokens Int     @default(0)
+
+  stages GenerationStage[]
+
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+  updatedAt  DateTime  @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// One step of a run. All six rows are created up front so the timeline is fully
+/// drawn before any work starts — a user watching an empty screen fill in one row
+/// at a time cannot tell progress from a hang.
+///
+/// `errorKind` is what lets the UI show a remedy instead of a stack trace: a
+/// refusal cannot be fixed by retrying the same input and needs the topic
+/// reworded, while a provider error usually just needs the button pressed again.
+model GenerationStage {
+  id    String        @id @default(uuid())
+  runId String
+  run   GenerationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  /// research | angle | draft | humanize | audit | review
+  name    String
+  ordinal Int
+  /// pending | running | awaiting_input | succeeded | failed | skipped
+  status  String @default("pending")
+  attempt Int    @default(0)
+
+  input  Json?
+  output Json?
+
+  error     String?
+  /// refusal | provider | validation | timeout | unknown
+  errorKind String?
+
+  inputTokens  Int @default(0)
+  outputTokens Int @default(0)
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([runId, name])
+  @@index([runId, ordinal])
+}
