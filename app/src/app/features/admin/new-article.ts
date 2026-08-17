@@ -13,8 +13,8 @@ import { CATEGORY_LABELS, SITE } from '../../core/site.config';
  * Three fields, deliberately. The operator is not a security analyst and every
  * extra input is a chance to get something wrong that the pipeline could work
  * out for itself: word count is fixed to the band the rubric wants, the angle is
- * chosen later from real options rather than guessed at up front, and the
- * keyword is optional because the angle supplies a better one.
+ * chosen from real options rather than guessed at up front, and the keyword is
+ * optional because the angle supplies a better one.
  *
  * The suggest button fills those fields and stops. It could start the run in one
  * press, and deliberately does not: the operator is the only part of this system
@@ -49,6 +49,12 @@ export class NewArticle {
   protected readonly topic = signal('');
   protected readonly primaryKeyword = signal('');
   protected readonly category = signal<string>('vulnerabilities');
+  /**
+   * Checked by default. Unticking it brings back the angle choice screen, which is
+   * worth it for a flagship piece and is otherwise a run that stops halfway while
+   * nobody is watching.
+   */
+  protected readonly autoAngle = signal(true);
 
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -210,6 +216,7 @@ export class NewArticle {
         topic: this.topic().trim(),
         primaryKeyword: this.primaryKeyword().trim() || undefined,
         category: this.category(),
+        autoAngle: this.autoAngle(),
       })
       .subscribe({
         // Navigate straight to the timeline. The run is not awaited — research

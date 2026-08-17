@@ -322,6 +322,23 @@ tbody tr:hover { background: var(--bg-subtle); }
 .field { display: block; margin-bottom: 1.5rem; }
 .field__label { display: block; font-weight: 600; font-size: 0.9rem; }
 .field__optional { font-weight: 400; color: var(--muted); font-size: 0.8rem; }
+
+/* A checkbox reads as a row, not a stack: the box sits beside its label rather
+   than above it, and the hint hangs under the label instead of under the box. */
+.field--check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+
+  input[type='checkbox'] {
+    width: auto;
+    margin: 0.15rem 0 0;
+    flex: none;
+    accent-color: var(--accent);
+  }
+
+  .field__label { display: block; }
+}
 .field__hint {
   display: block;
   color: var(--muted);
@@ -593,6 +610,15 @@ tbody tr:hover { background: var(--bg-subtle); }
     line-height: 1.5;
     overflow-wrap: anywhere;
   }
+
+  /* The angle alternatives are prose, not a stack trace, so they stay in the
+     body face. Only the `p` above is a verbatim error worth setting in mono. */
+  ul {
+    margin: 0.4rem 0 0;
+    padding-left: 1.1rem;
+    line-height: 1.6;
+  }
+  ul strong { color: var(--fg); }
 }
 
 /* A refusal cannot be fixed by pressing the button again, so it gets a

@@ -7,15 +7,23 @@ import { StageError } from '../errors';
 import type { Stage, StageContext, StageResult } from '../stage.types';
 
 /**
- * Offer the operator a choice, then stop.
+ * Work out which story to tell, and — unless asked not to — get on with it.
  *
  * This is the one decision a non-technical person can make well and the pipeline
- * cannot: which story to tell. The same brief supports "what do I patch before
- * Monday", "who is behind this" and "how the exploit actually works", and those
- * are three different articles for three different readers.
+ * cannot: the same brief supports "what do I patch before Monday", "who is behind
+ * this" and "how the exploit actually works", and those are three different
+ * articles for three different readers.
  *
- * The stage ends `awaiting_input`. The worker will not touch the run again until
- * someone presses a button.
+ * It is still not worth stopping for by default. A run that parks here is a run
+ * that does not finish while nobody is looking at it, and the operator comes back
+ * to a decision they would have made the obvious way — the prompt already asks for
+ * the options ordered strongest sourcing first, so the first one is the answer
+ * almost every time. So `autoAngle` takes it and continues, and the options are
+ * recorded either way so the timeline can show what was passed over.
+ *
+ * With `autoAngle` off the stage ends `awaiting_input` and the worker will not
+ * touch the run again until someone presses a button. That is the right mode for
+ * a flagship piece, where which story to tell is the whole question.
  */
 
 const AngleSchema = z.object({
@@ -91,11 +99,26 @@ export class AngleStage implements Stage {
       { maxTokens: 1_500 },
     );
 
+    const angles = value.angles;
+
+    if (!ctx.run.autoAngle) {
+      return {
+        output: { angles },
+        usage,
+        awaitingInput: true,
+        runPatch: { angleOptions: angles },
+      };
+    }
+
+    // `chosen` is recorded on the output as well as the run, so the timeline row
+    // can name it without a second query, and `angles` stays on both so the
+    // alternatives remain visible after the fact.
+    const chosen = angles[0];
+
     return {
-      output: { angles: value.angles },
+      output: { angles, chosen, chosenIndex: 0, auto: true },
       usage,
-      awaitingInput: true,
-      runPatch: { angleOptions: value.angles },
+      runPatch: { angleOptions: angles, chosenAngle: chosen },
     };
   }
 }

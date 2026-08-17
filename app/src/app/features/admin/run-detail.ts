@@ -74,6 +74,18 @@ export class RunDetail implements OnInit, OnDestroy {
     () => this.failedStage()?.errorKind === 'unworkable',
   );
 
+  /** The angle the run took for itself, and what it passed over to take it. */
+  protected readonly autoAngle = computed(() => {
+    const run = this.run();
+    if (!run?.autoAngle || !run.chosenAngle) return null;
+    return {
+      chosen: run.chosenAngle,
+      alternatives: (run.angleOptions ?? []).filter(
+        (a) => a.title !== run.chosenAngle?.title,
+      ),
+    };
+  });
+
   ngOnInit(): void {
     this.load();
     this.timer = setInterval(() => {

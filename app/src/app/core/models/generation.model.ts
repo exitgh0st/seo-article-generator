@@ -77,6 +77,8 @@ export interface GenerationRun {
   category: string;
   chosenAngle: Angle | null;
   angleOptions: Angle[] | null;
+  /** False only when the operator asked to pick the angle themselves. */
+  autoAngle: boolean;
   briefSlug: string | null;
   articleSlug: string | null;
   error: string | null;

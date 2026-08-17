@@ -2,8 +2,9 @@
   <header class="page-head">
     <h1>New article</h1>
     <p>
-      Describe the story, or let one be suggested. The next screen finds and
-      reads the sources, then asks you to pick an angle.
+      Describe the story, or let one be suggested. The topic is checked before
+      anything is spent on it, and a workable one runs all the way through to a
+      draft waiting for your review.
     </p>
     <p class="page-head__actions">
       <a routerLink="/admin" class="linkish">← Dashboard</a>
@@ -185,6 +186,24 @@
       />
     </label>
 
+    <label class="field field--check">
+      <input
+        type="checkbox"
+        [ngModel]="autoAngle()"
+        (ngModelChange)="autoAngle.set($event)"
+        name="autoAngle"
+        [disabled]="busy()"
+      />
+      <span>
+        <span class="field__label">Choose the angle for me</span>
+        <span class="field__hint">
+          On, the run picks the best-sourced angle and keeps going, so it reaches
+          your review without stopping. Off, it pauses partway and asks you which
+          story to tell.
+        </span>
+      </span>
+    </label>
+
     <div class="form__actions">
       <button type="submit" class="cta" [disabled]="!canSubmit()">
         {{ submitLabel() }}
@@ -199,9 +218,12 @@
     <h2>What happens next</h2>
     <ol class="note__steps">
       <li>The topic is checked against the web and against what you have already written. A few seconds.</li>
-      <li>Sources are found and read. This takes about a minute.</li>
-      <li>You choose one of two or three angles.</li>
-      <li>The article is written, edited so it does not read as AI, and checked.</li>
+      <li>Sources are found and read. About a minute.</li>
+      @if (autoAngle()) {
+        <li>The best-sourced angle is taken, and the article is written, edited so it does not read as AI, and checked.</li>
+      } @else {
+        <li>You choose one of two or three angles, then the article is written, edited so it does not read as AI, and checked.</li>
+      }
       <li>It stops for you to review. Nothing is published without you.</li>
     </ol>
   </section>

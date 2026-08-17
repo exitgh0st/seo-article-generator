@@ -104,6 +104,22 @@
                   </p>
                 }
               }
+
+              <!-- The run chose for itself, so what it chose is worth showing. A
+                   silent decision is one the operator cannot disagree with. -->
+              @if (stage.name === 'angle' && stage.status === 'succeeded' && autoAngle(); as picked) {
+                <p class="stage__note">Took “{{ picked.chosen.title }}”</p>
+                @if (picked.alternatives.length) {
+                  <details class="stage__detail">
+                    <summary>What it passed over</summary>
+                    <ul>
+                      @for (alt of picked.alternatives; track alt.title) {
+                        <li><strong>{{ alt.title }}</strong> — {{ alt.summary }}</li>
+                      }
+                    </ul>
+                  </details>
+                }
+              }
             </div>
           </li>
         }

@@ -38,12 +38,14 @@ export class GenerationService {
     topic: string;
     primaryKeyword?: string;
     category: string;
+    autoAngle?: boolean;
   }) {
     return this.prisma.generationRun.create({
       data: {
         topic: input.topic.trim(),
         primaryKeyword: input.primaryKeyword?.trim() || null,
         category: input.category,
+        autoAngle: input.autoAngle ?? true,
         status: 'pending',
         stages: {
           create: STAGE_NAMES.map((name, ordinal) => ({ name, ordinal })),

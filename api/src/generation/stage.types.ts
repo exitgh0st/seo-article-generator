@@ -46,6 +46,8 @@ export interface StageResult {
     briefSlug?: string;
     articleSlug?: string;
     angleOptions?: unknown;
+    /** Set by `angle` when the run is choosing for itself. */
+    chosenAngle?: unknown;
   };
 }
 

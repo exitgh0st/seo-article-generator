@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { ARTICLE_CATEGORIES } from '../../seo/article.types';
 
 export class StartRunDto {
@@ -27,6 +36,16 @@ export class StartRunDto {
   @ApiProperty({ enum: ARTICLE_CATEGORIES })
   @IsIn(ARTICLE_CATEGORIES as unknown as string[])
   category!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Take the strongest angle and keep going rather than stopping to ask. ' +
+      'Defaults to true — the run is meant to reach review unattended.',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  autoAngle?: boolean;
 }
 
 /**

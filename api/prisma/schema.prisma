@@ -148,8 +148,15 @@ model GenerationRun {
 
   /// The angle the operator picked, once they have. Shape: { title, summary, primaryKeyword }.
   chosenAngle  Json?
-  /// Angles offered, so the choice screen survives a page reload.
+  /// Angles offered, so the choice screen survives a page reload. Recorded even
+  /// when the run picks for itself, so the timeline can show what it passed over.
   angleOptions Json?
+  /// Take the first angle and keep going, rather than parking the run until
+  /// somebody presses a button. Default on: an unattended run that stops halfway
+  /// is the thing this pipeline is judged on, and the angle prompt already orders
+  /// its options strongest-sourcing-first, so the first one is the right default.
+  /// Turn it off for a flagship piece where the choice of story is the point.
+  autoAngle    Boolean @default(true)
 
   /// Set as the run produces them.
   briefSlug   String?

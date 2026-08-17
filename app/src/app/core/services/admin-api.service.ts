@@ -33,6 +33,7 @@ export class AdminApiService {
     topic: string;
     primaryKeyword?: string;
     category: string;
+    autoAngle?: boolean;
   }): Observable<GenerationRun> {
     return this.http.post<GenerationRun>(`${this.base}/api/generation/runs`, input);
   }
