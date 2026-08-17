@@ -9,7 +9,7 @@ import { GroundingService } from '../research/grounding.service';
 import { PUBLISH_LIMITS } from '../common/constants/limits';
 import { today } from '../seo/article-validation.service';
 import { toFull, sourcesOf, type ArticleResponse } from '../articles/article.mapper';
-import { toMarkdown } from './markdown-export';
+import { articleExportPath, toMarkdown } from './markdown-export';
 import type { Env } from '../config/env.schema';
 
 export interface PreflightReport {
@@ -161,9 +161,8 @@ export class PublishService {
     let exportError: string | undefined;
 
     try {
-      const dir = path.join(this.contentDir, 'articles');
-      await mkdir(dir, { recursive: true });
-      const file = path.join(dir, `${slug}.md`);
+      const file = articleExportPath(this.contentDir, slug);
+      await mkdir(path.dirname(file), { recursive: true });
       await writeFile(file, toMarkdown(row), 'utf8');
       exportedTo = file;
     } catch (error) {

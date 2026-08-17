@@ -88,6 +88,30 @@ tbody tr:hover { background: var(--bg-subtle); }
 .row-title:hover { color: var(--accent); }
 .row-slug { display: block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
 
+.row-actions {
+  white-space: nowrap;
+  text-align: right;
+
+  /* The armed state is wider than the resting one. Reserving the space stops
+     the whole column jumping sideways when a row is armed. */
+  min-width: 9.5rem;
+
+  .linkish { margin-left: 0.6rem; }
+}
+
+/* Labels a column whose header would otherwise be an empty cell. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---- detail ---- */
 
 .alert {
@@ -270,8 +294,19 @@ tbody tr:hover { background: var(--bg-subtle); }
   border: 1px solid var(--border);
 }
 .cta--ghost:hover { border-color: var(--fg); }
+
+/* Only ever the second press of a two-step delete. The first press is a
+   .linkish, so the colour appears at the moment the action becomes real. */
+.cta--danger {
+  background: var(--danger);
+  color: #fff;
+  border: 1px solid var(--danger);
+}
+.cta--danger:hover { filter: brightness(1.1); }
+
 .cta:disabled,
-.cta--ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+.cta--ghost:disabled,
+.cta--danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .alert--danger {
   border-left: 3px solid var(--danger);

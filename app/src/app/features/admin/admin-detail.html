@@ -29,7 +29,32 @@
         @if (a.status !== 'published') {
           <a class="cta" [routerLink]="['/admin', a.slug, 'publish']">Publish…</a>
         }
+        @if (!editing()) {
+          @if (confirmingDelete()) {
+            <button
+              type="button"
+              class="cta cta--danger"
+              [disabled]="deleting()"
+              (click)="confirmDelete()"
+            >
+              {{ deleting() ? 'Deleting…' : 'Really delete?' }}
+            </button>
+            <button type="button" class="linkish" (click)="confirmingDelete.set(false)">
+              Cancel
+            </button>
+          } @else {
+            <button type="button" class="linkish" (click)="confirmingDelete.set(true)">
+              Delete
+            </button>
+          }
+        }
       </p>
+      @if (confirmingDelete() && !deleting()) {
+        <p class="meta-line">
+          This removes the article and the markdown exported for it. Only git
+          history keeps a copy.
+        </p>
+      }
     </header>
 
     @if (error()) {

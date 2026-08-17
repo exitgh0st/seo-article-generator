@@ -1,5 +1,18 @@
+import path from 'node:path';
 import type { Article as ArticleRow } from '@prisma/client';
 import type { Source } from '../seo/article.types';
+
+/**
+ * Where `toMarkdown`'s output lives on disk.
+ *
+ * Publishing writes this path and deleting removes it, from two different
+ * services that cannot import each other — PublishModule imports ArticlesModule,
+ * so the dependency only runs one way. Both sides calling one function is what
+ * stops the layout of `content/` from being encoded twice and drifting.
+ */
+export function articleExportPath(contentDir: string, slug: string): string {
+  return path.join(contentDir, 'articles', `${slug}.md`);
+}
 
 /**
  * Serializes an article row back to the markdown format in

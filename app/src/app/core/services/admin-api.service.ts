@@ -93,6 +93,14 @@ export class AdminApiService {
   publish(slug: string): Observable<unknown> {
     return this.http.post(`${this.base}/api/articles/${slug}/publish`, {});
   }
+
+  /**
+   * Removes the article and the markdown the publication exported for it.
+   * Irreversible from here — git history is the only copy afterwards.
+   */
+  deleteArticle(slug: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/articles/${slug}`);
+  }
 }
 
 /**

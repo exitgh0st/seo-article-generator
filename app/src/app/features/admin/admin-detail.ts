@@ -5,7 +5,7 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -36,6 +36,7 @@ import { CATEGORY_LABELS, SITE } from '../../core/site.config';
 })
 export class AdminDetail {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly api = inject(AdminApiService);
   private readonly content = inject(ContentService);
@@ -50,6 +51,10 @@ export class AdminDetail {
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly saved = signal(false);
+
+  /** Second press of the two-step delete, matching the list screen. */
+  protected readonly confirmingDelete = signal(false);
+  protected readonly deleting = signal(false);
 
   protected readonly headline = signal('');
   protected readonly description = signal('');
@@ -153,6 +158,28 @@ export class AdminDetail {
           this.error.set(apiErrorMessage(err));
         },
       });
+  }
+
+  protected confirmDelete(): void {
+    const a = this.article();
+    if (!a || this.deleting()) return;
+
+    this.deleting.set(true);
+    this.error.set(null);
+
+    this.api.deleteArticle(a.slug).subscribe({
+      // Back to the list rather than staying on a page whose article no longer
+      // exists — the resolver would 404 on the next reload anyway.
+      next: () => {
+        this.content.refresh();
+        void this.router.navigate(['/admin']);
+      },
+      error: (err) => {
+        this.deleting.set(false);
+        this.confirmingDelete.set(false);
+        this.error.set(apiErrorMessage(err));
+      },
+    });
   }
 
   constructor() {

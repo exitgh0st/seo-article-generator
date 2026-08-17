@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
 import { AuthService } from '../../core/services/auth.service';
+import { AdminApiService, apiErrorMessage } from '../../core/services/admin-api.service';
 import { ARTICLE_CATEGORIES, ARTICLE_STATUSES, ArticleMeta } from '../../core/models/article.model';
 import { CATEGORY_LABELS, SITE } from '../../core/site.config';
 
@@ -23,6 +24,7 @@ export class AdminList {
   private readonly content = inject(ContentService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly api = inject(AdminApiService);
 
   protected readonly categories = ARTICLE_CATEGORIES;
   protected readonly statuses = ARTICLE_STATUSES;
@@ -35,6 +37,11 @@ export class AdminList {
   protected readonly status = signal<string>('');
   protected readonly category = signal<string>('');
   protected readonly sort = signal<SortKey>('publishedAt');
+
+  /** Slug whose Delete has been pressed once. Only ever one row at a time. */
+  protected readonly confirming = signal<string | null>(null);
+  protected readonly deleting = signal<string | null>(null);
+  protected readonly error = signal<string | null>(null);
 
   protected readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
@@ -76,6 +83,38 @@ export class AdminList {
     this.query.set('');
     this.status.set('');
     this.category.set('');
+  }
+
+  /**
+   * Arms the row. Pressing Delete on a different row moves the arming rather
+   * than deleting anything, so there is never more than one loaded button on
+   * screen and a double-click on the wrong row cannot reach the second step.
+   */
+  protected askDelete(slug: string): void {
+    this.error.set(null);
+    this.confirming.set(slug);
+  }
+
+  protected confirmDelete(slug: string): void {
+    if (this.deleting()) return;
+
+    this.deleting.set(slug);
+    this.error.set(null);
+
+    this.api.deleteArticle(slug).subscribe({
+      next: () => {
+        this.deleting.set(null);
+        this.confirming.set(null);
+        // Drops every cache, so the table and the counters above it both
+        // re-read rather than being patched locally and drifting.
+        this.content.refresh();
+      },
+      error: (err) => {
+        this.deleting.set(null);
+        this.confirming.set(null);
+        this.error.set(apiErrorMessage(err));
+      },
+    });
   }
 
   protected signOut(): void {

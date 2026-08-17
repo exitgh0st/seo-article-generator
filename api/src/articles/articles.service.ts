@@ -4,8 +4,12 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { unlink } from 'node:fs/promises';
+import path from 'node:path';
 import type { Article as ArticleRow, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { articleExportPath } from '../publish/markdown-export';
 import { MarkdownService } from '../seo/markdown.service';
 import {
   ArticleValidationService,
@@ -24,6 +28,7 @@ import { toFull, toMeta, type ArticleMetaResponse, type ArticleResponse } from '
 import type { SaveArticleDto } from './dto/save-article.dto';
 import type { ListArticlesDto } from './dto/list-articles.dto';
 import type { PatchArticleDto } from './dto/patch-article.dto';
+import type { Env } from '../config/env.schema';
 
 const WORDS_PER_MINUTE = 225;
 
@@ -47,13 +52,20 @@ export interface SaveResult {
 @Injectable()
 export class ArticlesService {
   private readonly logger = new Logger(ArticlesService.name);
+  private readonly contentDir: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly markdown: MarkdownService,
     private readonly validation: ArticleValidationService,
     private readonly grounding: GroundingService,
-  ) {}
+    config: ConfigService<Env, true>,
+  ) {
+    this.contentDir = path.resolve(
+      process.cwd(),
+      config.get('CONTENT_DIR', { infer: true }),
+    );
+  }
 
   // ============================================
   // READS
@@ -331,9 +343,35 @@ export class ArticlesService {
     return toFull(row);
   }
 
+  /**
+   * Deletes the row, then the markdown publication exported for it.
+   *
+   * Removing the file is not a lost review trail — git history holds every
+   * version this repo ever published. Leaving it is the actual danger: the file
+   * is an input to `npm run import`, so a delete that stops at the database is
+   * undone the next time content is loaded, which looks like the article coming
+   * back from nowhere.
+   *
+   * ENOENT is the ordinary case rather than a problem. Only a published article
+   * was ever exported, and drafts outnumber publications.
+   */
   async remove(slug: string): Promise<void> {
     await this.requireRow(slug);
     await this.prisma.article.delete({ where: { slug } });
+
+    try {
+      await unlink(articleExportPath(this.contentDir, slug));
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') {
+        // The row is already gone and the database is the source of truth, so
+        // this is a warning rather than a failure — the same call publish makes
+        // when it cannot write the export on an ephemeral filesystem.
+        this.logger.warn(
+          `Deleted ${slug} but could not remove its markdown: ${(error as Error).message}`,
+        );
+      }
+    }
   }
 
   // ============================================

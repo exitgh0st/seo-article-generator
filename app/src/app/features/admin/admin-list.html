@@ -78,6 +78,10 @@
     <button type="button" (click)="reset()">Reset</button>
   </div>
 
+  @if (error()) {
+    <p class="alert alert--danger">{{ error() }}</p>
+  }
+
   @if (filtered().length) {
     <div class="table-scroll">
       <table>
@@ -90,6 +94,7 @@
             <th class="num">SEO</th>
             <th class="num">Sources</th>
             <th>Published</th>
+            <th><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -107,6 +112,30 @@
               </td>
               <td class="num">{{ a.sourceCount }}</td>
               <td>{{ a.publishedAt | date: 'mediumDate' }}</td>
+              <td class="row-actions">
+                @if (confirming() === a.slug) {
+                  <button
+                    type="button"
+                    class="cta cta--danger"
+                    [disabled]="deleting() === a.slug"
+                    (click)="confirmDelete(a.slug)"
+                  >
+                    {{ deleting() === a.slug ? 'Deleting…' : 'Really delete?' }}
+                  </button>
+                  <button type="button" class="linkish" (click)="confirming.set(null)">
+                    Cancel
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="linkish"
+                    [attr.aria-label]="'Delete ' + a.title"
+                    (click)="askDelete(a.slug)"
+                  >
+                    Delete
+                  </button>
+                }
+              </td>
             </tr>
           }
         </tbody>
