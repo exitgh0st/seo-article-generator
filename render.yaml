@@ -1,4 +1,4 @@
-# Render deployment for the operator app.
+# Render deployment: the static operator app, and the API behind it.
 #
 # The app is static files. The rewrite is the part that matters: Angular uses
 # path-based routes, so a full page load of /admin/<slug> asks the host for a
@@ -6,8 +6,8 @@
 # refresh 404s, while in-app navigation looks fine — which is how this gets
 # missed until someone reloads the page.
 #
-# The API is a separate service and is not described here. Its ORIGIN must
-# contain this site's URL, or every request the app makes fails CORS.
+# The API's ORIGIN must contain the app site's URL, or every request the app
+# makes fails CORS. It is not set here — see the note on the API service below.
 services:
   - type: web
     runtime: static
@@ -18,3 +18,47 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  # The API. `name` must match the existing service in the dashboard exactly, or
+  # Render creates a second one instead of adopting this one.
+  #
+  # `migrate:deploy` is in the build command deliberately. Render's preDeploy
+  # hook needs a paid instance type, and putting it here means a failed migration
+  # fails the deploy rather than shipping a build against a schema that cannot
+  # serve it. That is the failure this file exists to prevent: the
+  # AdminCredential migration sat unapplied through several deploys and only
+  # surfaced when someone tried to log in, because login is the first request
+  # that reads the table. `prisma migrate deploy` is idempotent — on a deploy
+  # with nothing pending it is a no-op.
+  #
+  # DATABASE_URL must be a session-mode connection (Supabase pooler on :5432, or
+  # a direct connection). Migrations take an advisory lock, which the transaction
+  # pooler on :6543 cannot hold, so migrate:deploy would fail there every build.
+  - type: web
+    runtime: node
+    name: seo-article-generator
+    rootDir: api
+    buildCommand: npm ci && npm run build && npm run migrate:deploy
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # sync: false keeps the value already set in the dashboard and keeps the
+      # secret out of git. ORIGIN is here rather than derived from the static
+      # site because a blueprint reference yields a bare host, and CORS needs the
+      # scheme.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: ORIGIN
+        sync: false
+      - key: SITE_ORIGIN
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
