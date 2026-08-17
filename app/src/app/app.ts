@@ -1,9 +1,18 @@
-import { Component } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { ARTICLE_CATEGORIES } from './core/models/article.model';
-import { CATEGORY_LABELS, SITE } from './core/site.config';
+import { Component, inject } from '@angular/core';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from './core/services/auth.service';
+import { SITE } from './core/site.config';
 import { environment } from '../environments/environment';
 
+/**
+ * The console shell.
+ *
+ * The header used to carry the six article categories, which is a reader's way
+ * into a publication — and nobody reads this app. It is the operator's tool, so
+ * the nav names the two places an operator goes and the way out. The public
+ * routes are still routed: the review screen links to /article/:slug to show
+ * what a piece will look like, and that page links its tags.
+ */
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -11,9 +20,11 @@ import { environment } from '../environments/environment';
   styleUrl: './app.scss',
 })
 export class App {
+  /** Public because the template asks it whether to render the nav at all. */
+  protected readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
   protected readonly site = SITE;
-  protected readonly categories = ARTICLE_CATEGORIES;
-  protected readonly labels = CATEGORY_LABELS;
   protected readonly year = new Date().getFullYear();
 
   /**
@@ -21,4 +32,9 @@ export class App {
    * of a static build, so the links have to name that origin.
    */
   protected readonly feedBase = environment.apiUrl;
+
+  protected signOut(): void {
+    this.auth.logout();
+    void this.router.navigate(['/login']);
+  }
 }

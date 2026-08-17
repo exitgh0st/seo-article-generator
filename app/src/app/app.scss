@@ -44,6 +44,7 @@
 
 .nav {
   display: flex;
+  align-items: center;
   gap: 1.1rem;
   flex-wrap: wrap;
 
@@ -59,16 +60,19 @@
   }
 }
 
-.admin-link {
+/** Sign out. A button, not a link — it changes state rather than going somewhere. */
+.nav-action {
+  font: inherit;
   font-size: 0.78rem;
   color: var(--muted);
-  text-decoration: none;
+  background: none;
+  cursor: pointer;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.3rem 0.7rem;
+  align-self: center;
 
   &:hover { color: var(--fg); border-color: var(--muted); }
-  &.active { color: var(--accent); border-color: var(--accent); }
 }
 
 main { min-height: 60vh; }
@@ -97,5 +101,4 @@ main { min-height: 60vh; }
 
 @media (max-width: 640px) {
   .header-inner { padding-block: 0.75rem; }
-  .nav { order: 3; width: 100%; }
 }

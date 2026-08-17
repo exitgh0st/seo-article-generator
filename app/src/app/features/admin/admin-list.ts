@@ -3,10 +3,8 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
 import { ContentService } from '../../core/services/content.service';
 import { SeoService } from '../../core/services/seo.service';
-import { AuthService } from '../../core/services/auth.service';
 import { AdminApiService, apiErrorMessage } from '../../core/services/admin-api.service';
 import { ARTICLE_CATEGORIES, ARTICLE_STATUSES, ArticleMeta } from '../../core/models/article.model';
 import { CATEGORY_LABELS, SITE } from '../../core/site.config';
@@ -22,8 +20,6 @@ type SortKey = 'publishedAt' | 'title' | 'seoScore' | 'wordCount';
 })
 export class AdminList {
   private readonly content = inject(ContentService);
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
   private readonly api = inject(AdminApiService);
 
   protected readonly categories = ARTICLE_CATEGORIES;
@@ -117,14 +113,9 @@ export class AdminList {
     });
   }
 
-  protected signOut(): void {
-    this.auth.logout();
-    void this.router.navigate(['/login']);
-  }
-
   constructor() {
     inject(SeoService).setPage({
-      title: `Admin — ${SITE.name}`,
+      title: `Dashboard — ${SITE.name}`,
       description: 'Article management dashboard.',
       path: '/admin',
       noIndex: true,

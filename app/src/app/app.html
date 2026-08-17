@@ -1,20 +1,24 @@
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" routerLink="/">
+    <a class="brand" routerLink="/admin">
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
         <strong>{{ site.name }}</strong>
-        <small>{{ site.tagline }}</small>
+        <small>operator console</small>
       </span>
     </a>
 
-    <nav class="nav" aria-label="Categories">
-      @for (c of categories; track c) {
-        <a [routerLink]="['/category', c]" routerLinkActive="active">{{ labels[c] }}</a>
-      }
-    </nav>
-
-    <a class="admin-link" routerLink="/admin" routerLinkActive="active">Admin</a>
+    @if (auth.isAuthenticated()) {
+      <nav class="nav" aria-label="Console">
+        <!-- Exact, because every console route lives under /admin and Settings
+             would otherwise light this up too. -->
+        <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          Dashboard
+        </a>
+        <a routerLink="/admin/settings" routerLinkActive="active">Settings</a>
+        <button type="button" class="nav-action" (click)="signOut()">Sign out</button>
+      </nav>
+    }
   </div>
 </header>
 
@@ -26,6 +30,7 @@
   <div class="wrap footer-inner">
     <p>&copy; {{ year }} {{ site.name }}. Reporting sourced to primary advisories.</p>
     <p class="footer-links">
+      <a routerLink="/">View site</a>
       <a [href]="feedBase + '/rss.xml'">RSS</a>
       <a [href]="feedBase + '/sitemap.xml'">Sitemap</a>
     </p>
