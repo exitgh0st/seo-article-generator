@@ -11,6 +11,15 @@ interface LoginResponse {
   expiresIn: number;
 }
 
+/** What `GET /api/auth/me` says about the session this tab is holding. */
+export interface SessionInfo {
+  userId: string;
+  /** ISO date. Every other session was ended at this moment. */
+  passwordChangedAt: string;
+  /** Unix seconds, from the token's own `exp` claim. */
+  expiresAt: number | null;
+}
+
 /**
  * Single-operator auth. One password traded for a bearer token.
  *
@@ -50,6 +59,15 @@ export class AuthService {
         newPassword,
       })
       .pipe(tap((res) => this.setToken(res.token)));
+  }
+
+  /**
+   * Describes the current session. Read-only, and the settings screen is the
+   * only caller — the guard trusts the stored token rather than spending a
+   * request to confirm it on every navigation.
+   */
+  session(): Observable<SessionInfo> {
+    return this.http.get<SessionInfo>(`${this.base}/api/auth/me`);
   }
 
   logout(): void {

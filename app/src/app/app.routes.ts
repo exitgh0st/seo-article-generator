@@ -32,16 +32,22 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/admin-list').then((m) => m.AdminList),
   },
   {
-    // Listed before admin/:slug so "new", "runs" and "password" are not read as slugs.
+    // Listed before admin/:slug so "new", "runs" and "settings" are not read as slugs.
     path: 'admin/new',
     canActivate: [authGuard],
     loadComponent: () => import('./features/admin/new-article').then((m) => m.NewArticle),
   },
   {
-    path: 'admin/password',
+    path: 'admin/settings',
     canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/admin/change-password').then((m) => m.ChangePassword),
+    loadComponent: () => import('./features/admin/settings').then((m) => m.Settings),
+  },
+  {
+    // The password form moved into settings. DEPLOYMENT.md sends the operator
+    // here by name, so the old address has to keep arriving somewhere.
+    path: 'admin/password',
+    redirectTo: 'admin/settings',
+    pathMatch: 'full',
   },
   {
     path: 'admin/runs/:id',

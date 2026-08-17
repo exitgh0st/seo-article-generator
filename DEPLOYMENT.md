@@ -96,8 +96,9 @@ reads that row from then on. After the operator changes their password through t
 app, the environment variable is inert — editing it and redeploying does nothing,
 which is the one genuinely surprising thing in this section.
 
-The operator changes it at **`/admin/password`**, reachable from the link beside
-"Sign out" on the admin list. Doing so signs out every other device: the row
+The operator changes it at **`/admin/settings`**, reached from **Settings** in the
+header. (`/admin/password`, the old address, redirects there.) Doing so signs out
+every other device: the row
 records `passwordChangedAt`, and the JWT strategy rejects any token whose `iat`
 predates it. That, not rotating `JWT_SECRET`, is now the way to invalidate issued
 tokens — though rotating the secret still works and invalidates them regardless of

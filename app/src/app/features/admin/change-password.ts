@@ -1,9 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { SeoService } from '../../core/services/seo.service';
-import { SITE } from '../../core/site.config';
 
 /** Stated here and in the API's ChangePasswordDto. Change one, change the other. */
 const MIN_LENGTH = 12;
@@ -18,10 +15,13 @@ const MIN_LENGTH = 12;
  *
  * Every check here is repeated on the server, which is the one that counts. These
  * exist so the operator finds out before spending a request.
+ *
+ * A section of the settings screen rather than a screen of its own, so it owns no
+ * page metadata and no heading above `<h2>`.
  */
 @Component({
   selector: 'app-change-password',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './change-password.html',
   styleUrl: './admin.scss',
@@ -89,15 +89,6 @@ export class ChangePassword {
           this.error.set(messageFor(err));
         },
       });
-  }
-
-  constructor() {
-    inject(SeoService).setPage({
-      title: `Change password — ${SITE.name}`,
-      description: 'Change the operator password.',
-      path: '/admin/password',
-      noIndex: true,
-    });
   }
 }
 

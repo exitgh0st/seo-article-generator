@@ -101,6 +101,25 @@ export class AdminApiService {
   deleteArticle(slug: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/api/articles/${slug}`);
   }
+
+  // ---- system ----
+
+  /**
+   * Liveness and database connectivity, for the settings screen. The endpoint is
+   * public; the bearer the interceptor attaches is ignored.
+   */
+  health(): Observable<HealthReport> {
+    return this.http.get<HealthReport>(`${this.base}/api/health`);
+  }
+}
+
+export interface HealthReport {
+  status: string;
+  /** `up`, or `down: <reason>`. */
+  database: string;
+  /** Seconds the API process has been running. */
+  uptime: number;
+  timestamp: string;
 }
 
 /**

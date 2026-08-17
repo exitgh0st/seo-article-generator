@@ -331,6 +331,7 @@ tbody tr:hover { background: var(--bg-subtle); }
 }
 .field textarea,
 .field input[type='text'],
+.field input[type='password'],
 .field select {
   width: 100%;
   font: inherit;
@@ -349,7 +350,8 @@ tbody tr:hover { background: var(--bg-subtle); }
 .form__actions { display: flex; align-items: center; gap: 1rem; }
 
 .note { margin-top: 3rem; max-width: var(--measure); }
-.note h2 { font-size: 0.95rem; }
+.note h2,
+.note h3 { font-size: 0.95rem; }
 .note__steps { color: var(--muted); font-size: 0.88rem; line-height: 1.7; padding-left: 1.1rem; }
 .note p { color: var(--muted); font-size: 0.88rem; line-height: 1.7; }
 .note code { font-family: var(--font-mono); font-size: 0.85em; background: var(--bg-subtle); padding: 0.15rem 0.4rem; border-radius: var(--radius-sm); }
@@ -363,6 +365,60 @@ tbody tr:hover { background: var(--bg-subtle); }
   overflow-x: auto;
 }
 .note pre code { padding: 0; background: none; }
+
+/* --- settings --- */
+
+.settings-section {
+  display: block;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  max-width: var(--measure);
+
+  h2 { font-size: 1.05rem; margin: 0 0 0.4rem; }
+}
+
+/**
+ * The section that opens the page. Stated rather than inferred with
+ * `:first-of-type` — the leading section is a component of its own, so from the
+ * stylesheet's point of view it is not the first `section` on the page and the
+ * divider would land on the second one instead.
+ */
+.settings-section--lead {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.settings-section__lede,
+.settings-section__note { color: var(--muted); font-size: 0.88rem; line-height: 1.7; }
+.settings-section__note { margin-top: 1rem; }
+.settings-section__note code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-subtle);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.facts { margin: 1.25rem 0 0; display: grid; gap: 0.1rem; }
+
+.fact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+
+  &:last-child { border-bottom: 0; }
+
+  dt { color: var(--muted); }
+  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  dd code { font-family: var(--font-mono); font-size: 0.85em; }
+}
 
 /* --- progress bar --- */
 

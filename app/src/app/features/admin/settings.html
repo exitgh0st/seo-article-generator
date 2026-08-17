@@ -1,0 +1,87 @@
+<div class="wrap admin">
+  <header class="page-head">
+    <h1>Settings</h1>
+    <p>
+      One operator, one password, one API. This is where you change the first of
+      those and check on the last.
+    </p>
+    <p class="page-head__actions">
+      <a routerLink="/admin" class="linkish">← Back to the dashboard</a>
+    </p>
+  </header>
+
+  <app-change-password />
+
+  <section class="settings-section">
+    <h2>This session</h2>
+
+    @if (session(); as s) {
+      <dl class="facts">
+        <div class="fact">
+          <dt>Password last changed</dt>
+          <dd>{{ s.passwordChangedAt | date: 'medium' }}</dd>
+        </div>
+        <div class="fact">
+          <dt>This session ends</dt>
+          <dd>
+            @if (expiresAt(); as expiry) {
+              {{ expiry | date: 'medium' }}
+            } @else {
+              <span class="muted">no expiry on this token</span>
+            }
+          </dd>
+        </div>
+      </dl>
+      <p class="settings-section__note">
+        Changing the password ends every other session immediately. Signing out
+        here ends only this one — the token stays valid until it expires.
+      </p>
+    } @else {
+      <p class="muted">Could not read the session from the API.</p>
+    }
+  </section>
+
+  <section class="settings-section">
+    <h2>System</h2>
+
+    <dl class="facts">
+      @if (health(); as h) {
+        <div class="fact">
+          <dt>API</dt>
+          <dd>
+            <span class="badge" [class.badge--ok]="h.status === 'ok'"
+                  [class.badge--danger]="h.status !== 'ok'">{{ h.status }}</span>
+          </dd>
+        </div>
+        <div class="fact">
+          <dt>Database</dt>
+          <dd>{{ h.database }}</dd>
+        </div>
+        <div class="fact">
+          <dt>Uptime</dt>
+          <dd>{{ uptime() }}</dd>
+        </div>
+      } @else {
+        <div class="fact">
+          <dt>API</dt>
+          <dd><span class="badge badge--danger">unreachable</span></dd>
+        </div>
+      }
+
+      <div class="fact">
+        <dt>Site</dt>
+        <dd>{{ site.name }}</dd>
+      </div>
+      <div class="fact">
+        <dt>Published at</dt>
+        <dd><code>{{ site.origin }}</code></dd>
+      </div>
+    </dl>
+
+    <p class="settings-section__note">
+      These are read from the API and from the build, not editable here. The
+      publication's identity lives in <code>site.config.json</code> and
+      <code>core/site.config.ts</code>; the rest is environment.
+    </p>
+  </section>
+</div>
