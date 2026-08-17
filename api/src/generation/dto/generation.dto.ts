@@ -30,6 +30,28 @@ export class StartRunDto {
 }
 
 /**
+ * Judge a topic before spending anything on it.
+ *
+ * Same two fields the run takes, minus the keyword: this is about whether the
+ * story is sourceable, and the keyword has no bearing on that.
+ */
+export class PreflightTopicDto {
+  @ApiProperty({ example: 'N-able N-central authentication bypass being exploited' })
+  @IsString()
+  @MinLength(8, {
+    message:
+      'Say a little more about the topic — a vendor and a product, or a CVE identifier.',
+  })
+  @MaxLength(300)
+  topic!: string;
+
+  @ApiPropertyOptional({ enum: ARTICLE_CATEGORIES })
+  @IsOptional()
+  @IsIn(ARTICLE_CATEGORIES as unknown as string[])
+  category?: string;
+}
+
+/**
  * One optional field, and no free-text hint.
  *
  * The button exists precisely because the operator has nothing to type. A hint

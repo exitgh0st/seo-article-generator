@@ -12,7 +12,13 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { GenerationService } from './generation.service';
 import { TopicSuggesterService } from './topic-suggester.service';
-import { ChooseAngleDto, StartRunDto, SuggestTopicsDto } from './dto/generation.dto';
+import { TopicPreflightService } from './topic-preflight.service';
+import {
+  ChooseAngleDto,
+  PreflightTopicDto,
+  StartRunDto,
+  SuggestTopicsDto,
+} from './dto/generation.dto';
 
 /**
  * Everything is behind the global JwtAuthGuard.
@@ -29,6 +35,7 @@ export class GenerationController {
   constructor(
     private readonly generation: GenerationService,
     private readonly suggester: TopicSuggesterService,
+    private readonly preflightService: TopicPreflightService,
   ) {}
 
   // One press costs four searches and one model call — real money, but roughly a
@@ -43,6 +50,20 @@ export class GenerationController {
   })
   suggest(@Body() dto: SuggestTopicsDto) {
     return this.suggester.suggest(dto);
+  }
+
+  // Four searches and a query, no model call — roughly a tenth of a suggestion and
+  // a hundredth of a run. The ceiling is generous because pressing it is the
+  // behaviour we want: it is cheaper than the run it prevents.
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post('preflight')
+  // Creates nothing, same as `suggestions`.
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Judge whether a topic can become an article. Creates nothing.',
+  })
+  preflight(@Body() dto: PreflightTopicDto) {
+    return this.preflightService.check(dto);
   }
 
   @Get('runs')

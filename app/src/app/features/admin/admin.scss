@@ -515,6 +515,38 @@ tbody tr:hover { background: var(--bg-subtle); }
   padding-left: 0.9rem;
 }
 
+/* --- the topic verdict --- */
+
+/* Three outcomes and three colours, because the difference between them is the
+   whole message: green means it started, amber means you may proceed anyway, red
+   means pick something else. A single neutral panel would make the operator read
+   the sentence to find out whether they had been stopped. */
+.verdict {
+  margin-top: 1.25rem;
+  max-width: var(--measure);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  background: var(--bg-subtle);
+}
+.verdict--ready { border-left-color: var(--ok); }
+.verdict--warn { border-left-color: var(--warn); }
+.verdict--stop { border-left-color: var(--danger); }
+
+.verdict__headline { margin: 0; font-size: 0.9rem; font-weight: 600; }
+.verdict__summary { margin: 0.35rem 0 0; font-size: 0.85rem; line-height: 1.6; color: var(--muted); }
+.verdict__meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.verdict__list { margin: 0.6rem 0 0; padding-left: 1.1rem; font-size: 0.82rem; line-height: 1.7; }
+.verdict__list a { color: var(--fg); }
+.verdict__list a:hover { color: var(--accent); }
+.verdict__actions { margin: 0.75rem 0 0; }
+
 /* --- stage timeline --- */
 
 .stages { margin-top: 2rem; }

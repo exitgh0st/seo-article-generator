@@ -6,6 +6,7 @@ import type {
   GenerationRun,
   PreflightReport,
   RunSummary,
+  TopicPreflight,
   TopicSuggestionsResponse,
 } from '../models/generation.model';
 import type { Article } from '../models/article.model';
@@ -34,6 +35,18 @@ export class AdminApiService {
     category: string;
   }): Observable<GenerationRun> {
     return this.http.post<GenerationRun>(`${this.base}/api/generation/runs`, input);
+  }
+
+  /**
+   * Whether this topic can become an article. Creates nothing and costs a fraction
+   * of a run, so it is worth asking before every Start rather than only when the
+   * operator is unsure.
+   */
+  preflightTopic(topic: string, category?: string): Observable<TopicPreflight> {
+    return this.http.post<TopicPreflight>(`${this.base}/api/generation/preflight`, {
+      topic,
+      ...(category ? { category } : {}),
+    });
   }
 
   /**

@@ -42,6 +42,65 @@
       </span>
     </label>
 
+    <!-- The verdict. Shown for everything except `ready`, which starts the run in
+         the same press and so never lingers here. -->
+    @if (verdict(); as v) {
+      <section class="verdict" [class]="verdictClass()" role="status">
+        <p class="verdict__headline">{{ verdictHeadline() }}</p>
+        <p class="verdict__summary">{{ v.summary }}</p>
+
+        @if (v.covered.length) {
+          <ul class="verdict__list">
+            @for (a of v.covered; track a.slug) {
+              <li>
+                <a [routerLink]="['/admin', a.slug]">{{ a.title }}</a>
+                <span class="row-slug">{{ a.status }} · {{ a.publishedAt }}</span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (v.candidateCount) {
+          <p class="verdict__meta">
+            {{ v.candidateCount }} source{{ v.candidateCount === 1 ? '' : 's' }} ·
+            {{ v.distinctPublishers }} publisher{{ v.distinctPublishers === 1 ? '' : 's' }} ·
+            {{ v.tier1Count }} primary
+            @if (v.cves.length) {
+              · {{ v.cves.join(', ') }}
+            }
+          </p>
+        }
+
+        @if (v.sources.length) {
+          <ul class="verdict__list">
+            @for (src of v.sources; track src.url) {
+              <li>
+                <a [href]="src.url" target="_blank" rel="noopener noreferrer">
+                  {{ src.title }}
+                </a>
+                <span class="row-slug">{{ src.publisher }} · Tier {{ src.tier }}</span>
+              </li>
+            }
+          </ul>
+        }
+
+        <!-- The way out. A blocked topic is exactly when the operator needs
+             another one, so the suggester is the action rather than a hint. -->
+        @if (blocked()) {
+          <p class="verdict__actions">
+            <button
+              type="button"
+              class="cta cta--ghost"
+              [disabled]="suggesting() || busy()"
+              (click)="suggest()"
+            >
+              {{ suggesting() ? 'Looking for stories…' : 'Find me a topic that works' }}
+            </button>
+          </p>
+        }
+      </section>
+    }
+
     @if (suggestNote()) {
       <p class="note note--quiet">{{ suggestNote() }}</p>
     }
@@ -128,7 +187,7 @@
 
     <div class="form__actions">
       <button type="submit" class="cta" [disabled]="!canSubmit()">
-        {{ busy() ? 'Starting…' : 'Start writing' }}
+        {{ submitLabel() }}
       </button>
       @if (topic().trim().length > 0 && topic().trim().length < 8) {
         <span class="muted">Add a little more detail about the story.</span>
@@ -139,6 +198,7 @@
   <section class="note">
     <h2>What happens next</h2>
     <ol class="note__steps">
+      <li>The topic is checked against the web and against what you have already written. A few seconds.</li>
       <li>Sources are found and read. This takes about a minute.</li>
       <li>You choose one of two or three angles.</li>
       <li>The article is written, edited so it does not read as AI, and checked.</li>

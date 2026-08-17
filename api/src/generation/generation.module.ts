@@ -10,6 +10,7 @@ import { PromptsService } from './prompts.service';
 import { HumanizeService } from './humanize.service';
 import { InternalLinksService } from './internal-links.service';
 import { TopicSuggesterService } from './topic-suggester.service';
+import { TopicPreflightService } from './topic-preflight.service';
 import { ResearchStage } from './stages/research.stage';
 import { AngleStage } from './stages/angle.stage';
 import { DraftStage } from './stages/draft.stage';
@@ -37,6 +38,7 @@ import { ReviewStage } from './stages/review.stage';
     HumanizeService,
     InternalLinksService,
     TopicSuggesterService,
+    TopicPreflightService,
     ResearchStage,
     AngleStage,
     DraftStage,

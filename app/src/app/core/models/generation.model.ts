@@ -131,6 +131,32 @@ export interface TopicSuggestionsResponse {
   note?: string;
 }
 
+/**
+ * Whether a topic can become an article, answered before a run is created.
+ *
+ * `blocking` is the server's judgement and the screen should respect it: only
+ * "nothing found" and "already covered" set it. A `thin` verdict is a warning the
+ * operator is allowed to overrule, because search ranking is a sample and the
+ * research stage digs harder than this check does.
+ *
+ * Not to be confused with `PreflightReport` below, which is the *publish* gate.
+ */
+export type TopicVerdict = 'ready' | 'thin' | 'covered' | 'unsourceable';
+
+export interface TopicPreflight {
+  verdict: TopicVerdict;
+  blocking: boolean;
+  /** One plain-language sentence. The whole verdict, for someone not reading on. */
+  summary: string;
+  candidateCount: number;
+  tier1Count: number;
+  distinctPublishers: number;
+  cves: string[];
+  covered: { slug: string; title: string; status: string; publishedAt: string }[];
+  sources: SuggestionSource[];
+  searchedAt: string;
+}
+
 export interface SourceCheck {
   url: string;
   ok: boolean;
