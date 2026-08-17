@@ -29,6 +29,24 @@ export class StartRunDto {
   category!: string;
 }
 
+/**
+ * One optional field, and no free-text hint.
+ *
+ * The button exists precisely because the operator has nothing to type. A hint
+ * box re-creates the topic field it was meant to replace, and an operator who
+ * knows enough to write one should press Start instead.
+ */
+export class SuggestTopicsDto {
+  @ApiPropertyOptional({
+    enum: ARTICLE_CATEGORIES,
+    description:
+      'Narrows the search to one beat. Left blank, the search spans all of them.',
+  })
+  @IsOptional()
+  @IsIn(ARTICLE_CATEGORIES as unknown as string[])
+  category?: string;
+}
+
 export class ChooseAngleDto {
   @ApiProperty({ description: 'Index into the offered angles.', example: 0 })
   @IsInt()

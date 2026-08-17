@@ -379,6 +379,51 @@ tbody tr:hover { background: var(--bg-subtle); }
 .choice__meta { font-size: 0.78rem; }
 .choice__card .cta { margin-top: auto; align-self: flex-start; }
 
+/* --- suggested topics on /admin/new --- */
+
+/* Deliberately the same card as the angle choice on the run screen. Both are
+   "pick one of these and the form fills in", and a second visual language for
+   the same gesture would only be a second thing to learn. */
+.suggestions {
+  margin: 1.75rem 0 0.5rem;
+  display: grid;
+  gap: 1rem;
+  max-width: var(--measure);
+}
+
+.choice__card--applied {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.suggest-prompt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+
+  .linkish { font-size: inherit; color: var(--accent); }
+  .linkish:disabled { color: var(--muted); cursor: progress; }
+}
+
+.suggestion__sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+
+  a { color: var(--fg); }
+  a:hover { color: var(--accent); }
+}
+
+.note--quiet {
+  margin-top: 1.5rem;
+  max-width: var(--measure);
+  border-left: 3px solid var(--border);
+  padding-left: 0.9rem;
+}
+
 /* --- stage timeline --- */
 
 .stages { margin-top: 2rem; }

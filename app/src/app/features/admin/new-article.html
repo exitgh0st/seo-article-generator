@@ -2,8 +2,8 @@
   <header class="page-head">
     <h1>New article</h1>
     <p>
-      Describe the story. The next screen finds and reads the sources, then asks
-      you to pick an angle.
+      Describe the story, or let one be suggested. The next screen finds and
+      reads the sources, then asks you to pick an angle.
     </p>
     <p class="page-head__actions">
       <a routerLink="/admin" class="linkish">← Back to articles</a>
@@ -29,7 +29,72 @@
         placeholder="Name the vendor, product, or CVE"
         [disabled]="busy()"
       ></textarea>
+      <span class="field__hint suggest-prompt">
+        Nothing in mind?
+        <button
+          type="button"
+          class="linkish"
+          [disabled]="suggesting() || busy()"
+          (click)="suggest()"
+        >
+          {{ suggesting() ? 'Looking for stories…' : 'Suggest a topic' }}
+        </button>
+      </span>
     </label>
+
+    @if (suggestNote()) {
+      <p class="note note--quiet">{{ suggestNote() }}</p>
+    }
+
+    @if (suggestions()?.length) {
+      <section class="suggestions">
+        <h2 class="section-label">
+          Not yet covered — {{ suggestions()!.length }} to choose from
+        </h2>
+        <p class="field__hint">
+          Picking one fills the form. Nothing starts until you press
+          <strong>Start writing</strong>.
+        </p>
+
+        @for (s of suggestions(); track s.topic) {
+          <article class="choice__card" [class.choice__card--applied]="applied() === s.topic">
+            <h3>{{ s.topic }}</h3>
+            <p>{{ s.why }}</p>
+
+            <p class="meta-line">
+              <span class="badge badge--muted">{{ labels[s.category] }}</span>
+              <span>{{ s.primaryKeyword }}</span>
+              @if (s.cves.length) {
+                <span aria-hidden="true">·</span>
+                <span>{{ s.cves.join(', ') }}</span>
+              }
+            </p>
+
+            @if (!s.hasPrimarySource) {
+              <p class="field__hint">
+                No vendor advisory or government alert among the sources yet. The
+                research step may not find enough to write from.
+              </p>
+            }
+
+            <ul class="suggestion__sources">
+              @for (src of s.sources; track src.url) {
+                <li>
+                  <a [href]="src.url" target="_blank" rel="noopener noreferrer">
+                    {{ src.title }}
+                  </a>
+                  <span class="row-slug">{{ src.publisher }} · Tier {{ src.tier }}</span>
+                </li>
+              }
+            </ul>
+
+            <button type="button" class="cta cta--ghost" (click)="apply(s)">
+              {{ applied() === s.topic ? 'Filled in below ✓' : 'Use this' }}
+            </button>
+          </article>
+        }
+      </section>
+    }
 
     <label class="field">
       <span class="field__label">Category</span>

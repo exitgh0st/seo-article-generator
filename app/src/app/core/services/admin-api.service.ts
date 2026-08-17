@@ -6,6 +6,7 @@ import type {
   GenerationRun,
   PreflightReport,
   RunSummary,
+  TopicSuggestionsResponse,
 } from '../models/generation.model';
 import type { Article } from '../models/article.model';
 
@@ -33,6 +34,17 @@ export class AdminApiService {
     category: string;
   }): Observable<GenerationRun> {
     return this.http.post<GenerationRun>(`${this.base}/api/generation/runs`, input);
+  }
+
+  /**
+   * Stories worth writing that the library does not already cover. Starts
+   * nothing — the operator picks one and then presses Start as usual.
+   */
+  suggestTopics(category?: string): Observable<TopicSuggestionsResponse> {
+    return this.http.post<TopicSuggestionsResponse>(
+      `${this.base}/api/generation/suggestions`,
+      category ? { category } : {},
+    );
   }
 
   run(id: string): Observable<GenerationRun> {

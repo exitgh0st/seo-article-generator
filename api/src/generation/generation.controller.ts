@@ -1,8 +1,18 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { GenerationService } from './generation.service';
-import { ChooseAngleDto, StartRunDto } from './dto/generation.dto';
+import { TopicSuggesterService } from './topic-suggester.service';
+import { ChooseAngleDto, StartRunDto, SuggestTopicsDto } from './dto/generation.dto';
 
 /**
  * Everything is behind the global JwtAuthGuard.
@@ -16,7 +26,24 @@ import { ChooseAngleDto, StartRunDto } from './dto/generation.dto';
 @ApiBearerAuth()
 @Controller('generation')
 export class GenerationController {
-  constructor(private readonly generation: GenerationService) {}
+  constructor(
+    private readonly generation: GenerationService,
+    private readonly suggester: TopicSuggesterService,
+  ) {}
+
+  // One press costs four searches and one model call — real money, but roughly a
+  // tenth of a run, so the ceiling sits above the run limit rather than at it.
+  @Throttle({ default: { limit: 6, ttl: 60_000 } })
+  @Post('suggestions')
+  // Nothing is created. 201 would tell the client a resource exists at a URL it
+  // could fetch again, and there is none.
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Propose topics not already covered. Creates nothing.',
+  })
+  suggest(@Body() dto: SuggestTopicsDto) {
+    return this.suggester.suggest(dto);
+  }
 
   @Get('runs')
   @ApiOperation({ summary: 'Recent runs, newest first.' })

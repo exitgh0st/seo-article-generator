@@ -9,6 +9,7 @@ import { DeepSeekService } from './deepseek.service';
 import { PromptsService } from './prompts.service';
 import { HumanizeService } from './humanize.service';
 import { InternalLinksService } from './internal-links.service';
+import { TopicSuggesterService } from './topic-suggester.service';
 import { ResearchStage } from './stages/research.stage';
 import { AngleStage } from './stages/angle.stage';
 import { DraftStage } from './stages/draft.stage';
@@ -35,6 +36,7 @@ import { ReviewStage } from './stages/review.stage';
     PromptsService,
     HumanizeService,
     InternalLinksService,
+    TopicSuggesterService,
     ResearchStage,
     AngleStage,
     DraftStage,

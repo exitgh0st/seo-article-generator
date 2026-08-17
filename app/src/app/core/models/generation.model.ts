@@ -85,6 +85,39 @@ export interface RunSummary {
   finishedAt: string | null;
 }
 
+export interface SuggestionSource {
+  title: string;
+  url: string;
+  publisher: string;
+  /** 1 = primary/vendor/government, 2 = credible outlet. Tier 3 never appears. */
+  tier: 1 | 2 | 3;
+}
+
+/** A story the server believes is worth writing and is not covered yet. */
+export interface TopicSuggestion {
+  topic: string;
+  primaryKeyword: string;
+  category: string;
+  /** One sentence for the operator to read. Never submitted with the run. */
+  why: string;
+  sources: SuggestionSource[];
+  cves: string[];
+  hasPrimarySource: boolean;
+}
+
+export interface TopicSuggestionsResponse {
+  suggestions: TopicSuggestion[];
+  consideredCount: number;
+  excludedCount: number;
+  searchedAt: string;
+  /**
+   * Present only when `suggestions` is empty. Both a quiet week and an
+   * all-covered week are a 200, so this is the only thing that tells them apart
+   * — render it rather than showing a bare empty list.
+   */
+  note?: string;
+}
+
 export interface SourceCheck {
   url: string;
   ok: boolean;
