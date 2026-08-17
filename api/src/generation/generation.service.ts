@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { STAGE_NAMES, STAGE_LABELS, type Stage, type StageName } from './stage.types';
 import { classify } from './errors';
@@ -135,7 +136,12 @@ export class GenerationService {
           error: null,
           errorKind: null,
           errorDetail: null,
-          output: undefined,
+          // `undefined` here meant "leave this field alone" to Prisma, not "clear
+          // it", so a re-queued stage kept the output of its previous run — which
+          // `advanceOne` then hands to later stages through `outputOf`. The whole
+          // point of resetting downstream stages is that their old output is
+          // stale.
+          output: Prisma.DbNull,
           startedAt: null,
           finishedAt: null,
         },
