@@ -130,9 +130,16 @@ npm run article:export -- <slug>
 
 npm run db:up            # Postgres in Docker (port 5433)
 npm run build            # build both halves; the app builds to app/dist/app as static files
+
+# Schema changes
+npm run migrate:create -- --name <name>   # writes the SQL file. Applies nothing.
+npm run migrate:deploy                    # applies it. This is the step that counts.
+npx prisma migrate status                 # must come back "up to date"
 ```
 
 `npm run audit` is the one to reach for most. It needs no database, so it works on a draft before it has been imported.
+
+**A schema change is not finished until it is applied.** `api/.env` points at the hosted Supabase database — the same one the deployed API reads — so a pending migration is a live 500, not a local inconvenience. Any change touching `api/prisma/schema.prisma` includes running `npm run migrate:deploy` and confirming `npx prisma migrate status` is clean, before testing the code that reads the new column. Render's build does not do this for you: `render.yaml` puts `migrate:deploy` in the build command, but the blueprint is not synced to the dashboard service, which is how the `AdminCredential` and `GenerationStage.errorDetail` migrations each sat unapplied until something 500'd.
 
 Secrets live in `api/.env` — see `api/.env.example`. `DEEPSEEK_API_KEY` and `TAVILY_API_KEY` drive the in-app pipeline; your own workflow through the skills does not use them.
 
