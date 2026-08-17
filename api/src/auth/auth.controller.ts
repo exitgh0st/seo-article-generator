@@ -38,8 +38,17 @@ export class AuthController {
 
   @ApiBearerAuth()
   @Get('me')
-  @ApiOperation({ summary: 'Verify the current token is still valid.' })
-  me(@CurrentUser() user: AuthenticatedUser) {
-    return { userId: user.userId };
+  @ApiOperation({
+    summary:
+      'Verify the current token is still valid, and describe the session it belongs to.',
+  })
+  async me(@CurrentUser() user: AuthenticatedUser) {
+    return {
+      userId: user.userId,
+      passwordChangedAt: await this.authService.passwordChangedAt(),
+      // Seconds, from the token's own `exp` claim. Null only if a token were
+      // ever minted without one, which `issue()` does not do.
+      expiresAt: user.expiresAt ?? null,
+    };
   }
 }

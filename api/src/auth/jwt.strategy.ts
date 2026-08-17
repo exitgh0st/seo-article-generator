@@ -7,6 +7,9 @@ import type { Env } from '../config/env.schema';
 
 export interface AuthenticatedUser {
   userId: string;
+  /** The token's `exp` claim, in seconds. Surfaced by GET /auth/me so the
+   *  settings screen can say when this session ends without decoding the JWT. */
+  expiresAt?: number;
 }
 
 export interface JwtPayload {
@@ -46,6 +49,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     await this.auth.assertTokenFresh(payload);
-    return { userId: payload.sub };
+    return { userId: payload.sub, expiresAt: payload.exp };
   }
 }

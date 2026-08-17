@@ -166,6 +166,25 @@ describe('AuthService', () => {
     });
   });
 
+  describe('passwordChangedAt', () => {
+    it('reads the column the settings screen displays', async () => {
+      const changedAt = new Date('2026-08-16T12:00:00.000Z');
+      const { service } = serviceWith({
+        passwordHash: SEED_HASH,
+        passwordChangedAt: changedAt,
+      });
+
+      await expect(service.passwordChangedAt()).resolves.toEqual(changedAt);
+    });
+
+    it('seeds the row first if the password has never been changed', async () => {
+      const { service, adminCredential } = serviceWith(null);
+
+      await expect(service.passwordChangedAt()).resolves.toBeInstanceOf(Date);
+      expect(adminCredential.upsert).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('assertTokenFresh', () => {
     const changedAt = new Date('2026-08-16T12:00:00.000Z');
 

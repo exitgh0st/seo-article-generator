@@ -117,6 +117,15 @@ export class AuthService {
     }
   }
 
+  /**
+   * When the password was last changed. Read rather than cached for the same
+   * reason `credential()` is — see the note there.
+   */
+  async passwordChangedAt(): Promise<Date> {
+    const { passwordChangedAt } = await this.credential();
+    return passwordChangedAt;
+  }
+
   private async issue(): Promise<LoginResult> {
     const token = await this.jwt.signAsync(
       { sub: 'admin' },
