@@ -134,6 +134,7 @@ export class GenerationService {
           status: 'pending',
           error: null,
           errorKind: null,
+          errorDetail: null,
           output: undefined,
           startedAt: null,
           finishedAt: null,
@@ -243,6 +244,7 @@ export class GenerationService {
         run.id,
         classified.remedy ?? classified.message,
         classified.kind,
+        classified.message,
       );
       this.logger.warn(
         `run ${run.id.slice(0, 8)} ${next.name} failed (${classified.kind}): ${classified.message}`,
@@ -282,11 +284,20 @@ export class GenerationService {
     return stuck.length;
   }
 
+  /**
+   * Record a stage failure.
+   *
+   * `message` is the remedy — plain language, aimed at the operator. `detail` is
+   * the underlying failure verbatim, kept because the remedy stops being useful
+   * the moment it has been followed and the stage failed anyway. It is stored on
+   * the stage only; the run's `error` stays the sentence worth reading first.
+   */
   private async failStage(
     stageId: string,
     runId: string,
     message: string,
     kind: string,
+    detail?: string,
   ) {
     await this.prisma.$transaction([
       this.prisma.generationStage.update({
@@ -295,6 +306,7 @@ export class GenerationService {
           status: 'failed',
           error: message,
           errorKind: kind,
+          errorDetail: detail === message ? null : (detail ?? null),
           finishedAt: new Date(),
         },
       }),

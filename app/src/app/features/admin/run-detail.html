@@ -71,6 +71,16 @@
                   <p class="stage__error">{{ stage.error }}</p>
                 }
 
+                <!-- Collapsed, and only after the remedy has visibly not worked.
+                     "Press Retry" reads as a dead end on the third attempt, and
+                     until now the reason lived only in the server log. -->
+                @if (stage.errorDetail && stage.attempt > 1) {
+                  <details class="stage__detail">
+                    <summary>What went wrong, in technical terms</summary>
+                    <p>{{ stage.errorDetail }}</p>
+                  </details>
+                }
+
                 <button type="button" class="cta cta--ghost" [disabled]="busy()" (click)="retry(stage)">
                   Try this step again
                 </button>

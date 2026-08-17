@@ -193,9 +193,16 @@ model GenerationStage {
   input  Json?
   output Json?
 
-  error     String?
+  /// The remedy, in plain language. This is what the operator reads.
+  error       String?
   /// refusal | provider | validation | timeout | unknown
-  errorKind String?
+  errorKind   String?
+  /// The underlying failure, verbatim. The remedy is deliberately vague enough to
+  /// be actionable by someone who is not a developer, which leaves nothing to go
+  /// on once it has been followed and the stage failed anyway — a draft rejected
+  /// for a short description and one rejected for an empty reply read identically.
+  /// Kept beside it so the third failure is diagnosable without a log stream.
+  errorDetail String?
 
   inputTokens  Int @default(0)
   outputTokens Int @default(0)

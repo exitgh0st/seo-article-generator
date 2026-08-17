@@ -47,8 +47,15 @@ export interface GenerationStage {
   status: StageStatus;
   attempt: number;
   output: unknown;
+  /** The remedy, in plain language. This is the line the operator acts on. */
   error: string | null;
   errorKind: ErrorKind | null;
+  /**
+   * The underlying failure, verbatim. Only worth showing once the remedy has
+   * been followed and the step failed anyway, which is why it is behind a
+   * disclosure rather than on the page.
+   */
+  errorDetail: string | null;
   inputTokens: number;
   outputTokens: number;
   startedAt: string | null;

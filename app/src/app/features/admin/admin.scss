@@ -545,6 +545,24 @@ tbody tr:hover { background: var(--bg-subtle); }
 .stage__error { margin: 0.5rem 0; font-size: 0.85rem; color: var(--danger); }
 .stage__hint { margin: 0.35rem 0 0; font-size: 0.75rem; color: var(--muted); }
 
+/* The verbatim failure, for when the remedy above has already been followed and
+   the step failed anyway. Closed by default: it is developer text, and an
+   operator who has not run out of options should not have to read it. */
+.stage__detail {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+
+  summary { cursor: pointer; }
+
+  p {
+    margin: 0.4rem 0 0;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+}
+
 /* A refusal cannot be fixed by pressing the button again, so it gets a
    different treatment from an outage: what happened, and what to do instead. */
 .advice {
