@@ -55,6 +55,17 @@ export class DeepSeekService {
    * Temperature is pinned. The old chat loop left it unset, which meant a
    * pipeline whose entire premise is factual consistency ran at whatever the
    * provider defaulted to that week.
+   *
+   * An unusable reply gets exactly one correction turn before it becomes a
+   * failure. Nothing above this retries — `advanceOne` records the failure and
+   * the run stops until a person presses a button — so a reply the model would
+   * have got right on the next token cost an operator a round trip through the
+   * UI. Measured on the draft stage: three consecutive failures on the same
+   * frontmatter call, each ending the run.
+   *
+   * One turn, not a loop. Two identical rejections mean the prompt is wrong
+   * rather than the sampling unlucky, and grinding on it spends tokens to reach
+   * the same place.
    */
   async json<T>(
     schema: ZodSchema<T>,
@@ -62,31 +73,62 @@ export class DeepSeekService {
     user: string,
     options: { temperature?: number; maxTokens?: number } = {},
   ): Promise<CompletionResult<T>> {
-    const raw = await this.raw(system, user, {
-      ...options,
-      jsonMode: true,
-    });
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ];
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(stripFences(raw.value));
-    } catch {
-      throw new OutputValidationError(
-        `Expected JSON, got ${raw.value.slice(0, 200)}`,
+    const first = await this.complete(messages, { ...options, jsonMode: true });
+    const read = readJson(schema, first);
+    if (read.ok) return { value: read.value, usage: first.usage };
+
+    this.logger.warn(
+      `${this.model} returned unusable JSON (${read.problem}); asking for a correction.`,
+    );
+
+    const second = await this.complete(
+      [
+        ...messages,
+        {
+          role: 'assistant',
+          // An empty reply leaves nothing to quote back, and an empty assistant
+          // turn is not something every provider accepts.
+          content: first.content.trim() || '(no content)',
+        },
+        {
+          role: 'user',
+          content: [
+            `That reply could not be used: ${read.problem}.`,
+            '',
+            'Reply again with the corrected JSON object and nothing else — no',
+            'prose, no explanation, no code fence. Include every key the original',
+            'instructions asked for.',
+          ].join('\n'),
+        },
+      ],
+      { ...options, jsonMode: true },
+    );
+
+    const repaired = readJson(schema, second);
+    const usage: Usage = {
+      inputTokens: first.usage.inputTokens + second.usage.inputTokens,
+      outputTokens: first.usage.outputTokens + second.usage.outputTokens,
+    };
+    if (repaired.ok) return { value: repaired.value, usage };
+
+    // Twice in a row with nothing at all in the body is the provider failing to
+    // answer, not the model answering badly. The remedies differ: one says press
+    // Retry, the other says the shape was wrong. DeepSeek's JSON mode is
+    // documented to do this occasionally.
+    if (!first.content.trim() && !second.content.trim()) {
+      throw new ProviderError(
+        'The model returned an empty response twice in a row.',
       );
     }
 
-    const result = schema.safeParse(parsed);
-    if (!result.success) {
-      throw new OutputValidationError(
-        `Response did not match the expected shape: ${result.error.issues
-          .map((i) => `${i.path.join('.') || '(root)'} ${i.message}`)
-          .slice(0, 5)
-          .join('; ')}`,
-      );
-    }
-
-    return { value: result.data, usage: raw.usage };
+    throw new OutputValidationError(
+      `After one correction attempt, ${repaired.problem}`,
+    );
   }
 
   /** Prompt for prose. Used by the humanize stage, which returns markdown. */
@@ -95,14 +137,38 @@ export class DeepSeekService {
     user: string,
     options: { temperature?: number; maxTokens?: number } = {},
   ): Promise<CompletionResult<string>> {
-    return this.raw(system, user, options);
+    const result = await this.complete(
+      [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      options,
+    );
+
+    if (result.finishReason === 'length') {
+      throw new OutputValidationError(
+        'The model hit its output limit mid-reply, so the result is incomplete.',
+      );
+    }
+    if (!result.content.trim()) {
+      throw new OutputValidationError('The model returned an empty response.');
+    }
+
+    return { value: result.content, usage: result.usage };
   }
 
-  private async raw(
-    system: string,
-    user: string,
+  /**
+   * One round trip.
+   *
+   * Throws only for the two things no caller can do anything with: a transport
+   * failure, and a refusal. An empty or truncated reply comes back as data,
+   * because `json` treats it as something to correct while `text` treats it as
+   * fatal.
+   */
+  private async complete(
+    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
     options: { temperature?: number; maxTokens?: number; jsonMode?: boolean },
-  ): Promise<CompletionResult<string>> {
+  ): Promise<{ content: string; finishReason: string | null; usage: Usage }> {
     let response: OpenAI.Chat.Completions.ChatCompletion;
 
     try {
@@ -111,10 +177,7 @@ export class DeepSeekService {
         temperature: options.temperature ?? 0.3,
         max_tokens: options.maxTokens ?? 8_000,
         ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
+        messages,
       });
     } catch (error) {
       throw new ProviderError((error as Error).message);
@@ -128,14 +191,6 @@ export class DeepSeekService {
     if (choice?.finish_reason === 'content_filter') {
       throw new RefusalError('The model declined to answer this prompt.');
     }
-    if (choice?.finish_reason === 'length') {
-      throw new OutputValidationError(
-        'The model hit its output limit mid-reply, so the result is incomplete.',
-      );
-    }
-    if (!content.trim()) {
-      throw new OutputValidationError('The model returned an empty response.');
-    }
 
     const usage: Usage = {
       inputTokens: response.usage?.prompt_tokens ?? 0,
@@ -146,8 +201,61 @@ export class DeepSeekService {
       `${this.model}: ${usage.inputTokens} in / ${usage.outputTokens} out`,
     );
 
-    return { value: content, usage };
+    return { content, finishReason: choice?.finish_reason ?? null, usage };
   }
+}
+
+type JsonRead<T> = { ok: true; value: T } | { ok: false; problem: string };
+
+/**
+ * Parse and validate one reply, describing the failure in the second person so
+ * the text can be handed straight back to the model as a correction.
+ */
+function readJson<T>(
+  schema: ZodSchema<T>,
+  reply: { content: string; finishReason: string | null },
+): JsonRead<T> {
+  // Truncation is diagnosed from what arrived rather than from `finish_reason`
+  // alone: an object that stops at exactly the token limit is still an object,
+  // and rejecting it would throw away a usable answer. When something is wrong,
+  // though, a reply that ran out of room is worth saying so — "be brief" is a
+  // correction the model can act on, where "that was not JSON" is not.
+  const truncated = reply.finishReason === 'length';
+  const cutOff = (because: string) =>
+    truncated
+      ? 'it hit the output limit and was cut off mid-reply, leaving it incomplete'
+      : because;
+
+  if (!reply.content.trim()) {
+    return { ok: false, problem: cutOff('it was empty') };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stripFences(reply.content));
+  } catch {
+    return {
+      ok: false,
+      problem: cutOff(
+        `it was not valid JSON — it began "${reply.content.slice(0, 200)}"`,
+      ),
+    };
+  }
+
+  const result = schema.safeParse(parsed);
+  if (!result.success) {
+    return {
+      ok: false,
+      problem: cutOff(
+        `it did not match the expected shape: ${result.error.issues
+          .map((i) => `${i.path.join('.') || '(root)'} ${i.message}`)
+          .slice(0, 5)
+          .join('; ')}`,
+      ),
+    };
+  }
+
+  return { ok: true, value: result.data };
 }
 
 /** Models wrap JSON in ```json fences often enough to be worth handling. */
