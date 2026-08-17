@@ -30,6 +30,12 @@ export type ErrorKind =
   | 'provider'
   | 'validation'
   | 'timeout'
+  /**
+   * The topic cannot produce an article — nothing was found, or nothing primary.
+   * The screen must not offer Retry for this: pressing it searches the same web
+   * and finds the same nothing.
+   */
+  | 'unworkable'
   | 'unknown';
 
 export interface Angle {

@@ -63,6 +63,17 @@ export class RunDetail implements OnInit, OnDestroy {
 
   protected readonly finished = computed(() => this.run()?.status === 'succeeded');
 
+  /**
+   * The run died on the topic rather than on anything about this attempt.
+   *
+   * Worth its own state because the answer is a different topic, not a button. A
+   * retry here searches the same web and finds the same nothing, and offering it
+   * is how an operator ends up pressing a button four times before giving up.
+   */
+  protected readonly unworkable = computed(
+    () => this.failedStage()?.errorKind === 'unworkable',
+  );
+
   ngOnInit(): void {
     this.load();
     this.timer = setInterval(() => {

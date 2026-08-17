@@ -9,6 +9,8 @@
           Waiting for you to choose an angle.
         } @else if (finished()) {
           Finished. Review it before publishing.
+        } @else if (unworkable()) {
+          Stopped. This topic will not work.
         } @else {
           Stopped.
         }
@@ -67,6 +69,11 @@
                     <strong>The AI declined this topic.</strong>
                     <p>{{ stage.error }}</p>
                   </div>
+                } @else if (stage.errorKind === 'unworkable') {
+                  <div class="advice">
+                    <strong>This topic cannot be written.</strong>
+                    <p>{{ stage.error }}</p>
+                  </div>
                 } @else {
                   <p class="stage__error">{{ stage.error }}</p>
                 }
@@ -81,12 +88,21 @@
                   </details>
                 }
 
-                <button type="button" class="cta cta--ghost" [disabled]="busy()" (click)="retry(stage)">
-                  Try this step again
-                </button>
-                <p class="stage__hint">
-                  Anything after this step runs again too.
-                </p>
+                <!-- No retry for a topic that cannot work. The button would search
+                     the same web and find the same nothing, and offering it is how
+                     an operator ends up pressing it four times before giving up. -->
+                @if (stage.errorKind === 'unworkable') {
+                  <p class="stage__hint">
+                    <a class="cta cta--ghost" routerLink="/admin/new">Start a different topic</a>
+                  </p>
+                } @else {
+                  <button type="button" class="cta cta--ghost" [disabled]="busy()" (click)="retry(stage)">
+                    Try this step again
+                  </button>
+                  <p class="stage__hint">
+                    Anything after this step runs again too.
+                  </p>
+                }
               }
             </div>
           </li>

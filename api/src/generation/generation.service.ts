@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { STAGE_NAMES, STAGE_LABELS, type Stage, type StageName } from './stage.types';
-import { classify } from './errors';
+import { classify, shouldRetry } from './errors';
 import { ResearchStage } from './stages/research.stage';
 import { AngleStage } from './stages/angle.stage';
 import { DraftStage } from './stages/draft.stage';
@@ -245,6 +245,37 @@ export class GenerationService {
       );
     } catch (error) {
       const classified = classify(error);
+
+      // Absorb one blip without a person watching.
+      //
+      // A run is meant to go from a topic to a reviewable draft unattended, and
+      // a single Tavily 500 or DeepSeek timeout used to end one that the next
+      // attempt would have completed — the operator came back to a stopped run
+      // and a button whose only job was to press itself. Re-queueing costs one
+      // more stage; stopping costs the whole run and the operator's attention.
+      //
+      // Only for failures where the identical input could plausibly succeed, and
+      // only up to MAX_STAGE_ATTEMPTS. `attempt` was already incremented above,
+      // and every stage is idempotent — they replace their own rows rather than
+      // appending — which is what makes running one twice safe.
+      if (shouldRetry(classified, next.attempt + 1)) {
+        await this.prisma.$transaction([
+          this.prisma.generationStage.update({
+            where: { id: next.id },
+            data: { status: 'pending', startedAt: null },
+          }),
+          this.prisma.generationRun.update({
+            where: { id: run.id },
+            data: { status: 'pending', currentStage: null },
+          }),
+        ]);
+        this.logger.warn(
+          `run ${run.id.slice(0, 8)} ${next.name} failed (${classified.kind}) on ` +
+            `attempt ${next.attempt + 1}, retrying: ${classified.message}`,
+        );
+        return true;
+      }
+
       await this.failStage(
         next.id,
         run.id,
