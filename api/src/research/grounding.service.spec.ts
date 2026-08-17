@@ -122,6 +122,45 @@ describe('GroundingService.check', () => {
     });
   });
 
+  describe('hyphen spelling in a CVE identifier', () => {
+    // Not hypothetical: CISA's KEV catalogue prints CVE‑2025‑24813 with U+2011
+    // in both positions, and an article citing it normally was blocked over it.
+    it('grounds an ASCII-hyphen citation against a non-breaking-hyphen source', async () => {
+      const svc = serviceWith([source('Added CVE‑2025‑24813 to the catalog.')]);
+      const report = await svc.check('brief-1', {}, 'Apache patched CVE-2025-24813.');
+      expect(report.unsourcedCves).toEqual([]);
+      expect(report.groundedCves.map((g) => g.cve)).toEqual(['CVE-2025-24813']);
+    });
+
+    it('grounds a non-breaking-hyphen citation against a plain source', async () => {
+      const svc = serviceWith([source('Apache patched CVE-2025-24813 in March.')]);
+      const report = await svc.check('brief-1', {}, 'See CVE‑2025‑24813 for detail.');
+      expect(report.unsourcedCves).toEqual([]);
+    });
+
+    it('counts one identifier once however the article spells it', async () => {
+      const svc = serviceWith([source('nothing relevant')]);
+      const report = await svc.check(
+        'brief-1',
+        { cves: ['cve-2026-48356'] },
+        'Both CVE-2026-48356 and CVE‑2026‑48356 appear here.',
+      );
+      expect(report.unsourcedCves).toEqual(['CVE-2026-48356']);
+    });
+
+    it('still blocks an identifier no source mentions in any spelling', async () => {
+      const svc = serviceWith([source('Adobe fixed CVE-2025-54236.')]);
+      const report = await svc.check('brief-1', {}, 'Adobe fixed CVE-2026-48356.');
+      expect(report.unsourcedCves).toEqual(['CVE-2026-48356']);
+    });
+
+    it('tolerates a soft hyphen inserted by the wrapping of source text', async () => {
+      const svc = serviceWith([source('advisory CVE-2025-­54236 published')]);
+      const report = await svc.check('brief-1', {}, 'Adobe fixed CVE-2025-54236.');
+      expect(report.unsourcedCves).toEqual([]);
+    });
+  });
+
   describe('sources with no retained text', () => {
     it('reports the gap rather than failing every claim', async () => {
       const svc = serviceWith([source('')]);

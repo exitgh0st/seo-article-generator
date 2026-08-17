@@ -54,7 +54,25 @@ export interface GroundingReport {
   warnings: string[];
 }
 
-const CVE_PATTERN = /\bCVE-\d{4}-\d{4,}\b/gi;
+/**
+ * Hyphens in a CVE identifier are not reliably hyphens.
+ *
+ * Publishers set identifiers with a non-breaking hyphen so a line wrap cannot
+ * split them, and text extraction preserves it: CISA's Known Exploited
+ * Vulnerabilities catalogue prints `CVE‑2025‑24813`, with U+2011 in both
+ * positions. An article written normally spells the same identifier with ASCII
+ * hyphens, so a literal comparison says the source never mentioned it and the
+ * gate blocks a claim that is perfectly well sourced — the worst kind of
+ * failure here, because it teaches the operator that the gate cries wolf.
+ *
+ * So both sides are folded to ASCII before anything is compared, and the
+ * pattern matches either spelling.
+ */
+const DASHES = /[‐-―−－]/g;
+/** Soft hyphen. Invisible, and wrapped web text is full of them. */
+const SOFT_HYPHEN = /­/g;
+
+const CVE_PATTERN = /\bCVE[-‐-―−－]\d{4}[-‐-―−－]\d{4,}\b/gi;
 const CVSS_PATTERN = /\bCVSS[^.\d]{0,20}?(\d{1,2}\.\d)\b/gi;
 
 /**
@@ -142,13 +160,16 @@ export function checkGrounding(
     const searchable = `${prose}\n${frontmatter.title ?? ''}\n${frontmatter.description ?? ''}`;
 
     // --- CVE identifiers: the hard gate ---
-    const claimed = new Set<string>([
-      ...(frontmatter.cves ?? []).map((c) => c.toUpperCase()),
-      ...matchAll(searchable, CVE_PATTERN).map((c) => c.toUpperCase()),
-    ]);
+    // Folded to one spelling before deduplication, or the same identifier
+    // written two ways counts twice and is reported twice.
+    const claimed = new Set<string>(
+      [...(frontmatter.cves ?? []), ...matchAll(searchable, CVE_PATTERN)].map(
+        (c) => c.replace(SOFT_HYPHEN, '').replace(DASHES, '-').trim().toUpperCase(),
+      ),
+    );
 
     for (const cve of claimed) {
-      const needle = cve.toLowerCase();
+      const needle = normalize(cve);
       const found = haystacks.filter((h) => h.text.includes(needle));
       if (found.length) {
         report.groundedCves.push({ cve, sources: found.map((f) => f.label) });
@@ -170,7 +191,7 @@ export function checkGrounding(
     ]);
 
     for (const indicator of indicators) {
-      const needle = refang(indicator).toLowerCase();
+      const needle = normalize(indicator);
       const found = haystacks.filter((h) => h.text.includes(needle));
       if (found.length) {
         report.groundedIndicators.push({
@@ -291,7 +312,22 @@ export class GroundingService {
  * plainly still matches an article that defanged it.
  */
 function normalize(text: string): string {
-  return refang(text).toLowerCase().replace(/\s+/g, ' ');
+  return refang(text)
+    .replace(SOFT_HYPHEN, '')
+    .replace(DASHES, '-')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Whether a body of text mentions a claim, ignoring case, wrapping, defanging
+ * and hyphen spelling. Exported because research.stage.ts asks the same question
+ * of a page it has just fetched, and a second implementation would drift from
+ * the one that actually gates the save.
+ */
+export function mentions(haystack: string, needle: string): boolean {
+  return normalize(haystack).includes(normalize(needle));
 }
 
 /** `192.42.116[.]58` -> `192.42.116.58`, and the `(.)`/`hxxp` variants. */
