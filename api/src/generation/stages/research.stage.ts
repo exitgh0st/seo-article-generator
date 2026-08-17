@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebSearchService, type SearchResult } from '../../tools/web-search.service';
 import { WebFetchService } from '../../tools/web-fetch.service';
+import { extractCves, isNotASource } from '../../tools/source-filters';
 import { ResearchService } from '../../research/research.service';
 import { DeepSeekService } from '../deepseek.service';
 import { PromptsService, today } from '../prompts.service';
@@ -318,49 +319,6 @@ function selectSources(candidates: SearchResult[]): SearchResult[] {
   }
 
   return chosen;
-}
-
-function extractCves(text: string): string[] {
-  return [...new Set((text.match(/\bCVE-\d{4}-\d{4,}\b/gi) ?? []).map((c) => c.toUpperCase()))];
-}
-
-/** Domains and URL shapes that are never a citable source. */
-const NOT_A_SOURCE_HOSTS = [
-  'instagram.com',
-  'facebook.com',
-  'linkedin.com',
-  'x.com',
-  'twitter.com',
-  'tiktok.com',
-  'youtube.com',
-  'reddit.com',
-  'pinterest.com',
-  'medium.com',
-];
-
-function isNotASource(url: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return true;
-  }
-
-  const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
-  if (NOT_A_SOURCE_HOSTS.some((d) => host === d || host.endsWith(`.${d}`))) {
-    return true;
-  }
-
-  // Search and archive pages fetch fine and contain a dozen unrelated headlines,
-  // which is worse than a failed fetch: the text looks like evidence.
-  if (/\/(search|tag|tags|category|categories|page|archive)(\/|$)/i.test(parsed.pathname)) {
-    return true;
-  }
-  if (parsed.searchParams.has('updated-max') || parsed.searchParams.has('max-results')) {
-    return true;
-  }
-
-  return false;
 }
 
 function slugify(text: string): string {
