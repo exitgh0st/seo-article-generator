@@ -45,15 +45,28 @@ const CATEGORY_VALUES = ARTICLE_CATEGORIES as readonly string[];
  * and the model economises on exactly the things that cost the most to escape —
  * length, and markdown link syntax. Splitting the call fixed both, at the cost
  * of one extra request.
+ *
+ * **Structural requirements only.** This schema used to carry the rubric's limits
+ * as well — description 120 to 200 characters, three to five secondary keywords,
+ * a strict slug pattern — and rejecting the whole draft over any of them was a
+ * mistake twice over. Those are soft rows by the system's own account
+ * (`ArticleValidationService`: "Soft problems … belong to the SEO rubric, not
+ * here"), and the code below repairs every one of them a few lines later. A
+ * reply was being discarded for a 90-character description that `clampDescription`
+ * would have accepted untouched, and the run died rather than the audit stage
+ * being given something to fix. Anything genuinely broken is still caught at
+ * `ArticlesService.save`, which validates before it persists.
  */
-const FrontmatterSchema = z.object({
-  title: z.string().min(10).max(70),
-  headline: z.string().min(10).max(120),
-  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  description: z.string().min(120).max(200),
-  secondaryKeywords: z.array(z.string().min(2)).min(3).max(5),
-  category: z.enum(CATEGORY_VALUES as [string, ...string[]]),
-  tags: z.array(z.string().min(2)).min(3).max(8),
+export const FrontmatterSchema = z.object({
+  title: z.string().min(10).max(200),
+  headline: z.string().min(10).max(200),
+  slug: z.string().min(1),
+  description: z.string().min(1),
+  secondaryKeywords: z.array(z.string().min(2)).min(1).max(12),
+  // Not an enum: an off-list category falls back to the one the operator picked
+  // on the form, which is a better answer than no article.
+  category: z.string().min(1),
+  tags: z.array(z.string().min(2)).min(1).max(20),
   cves: z.array(z.string()).default([]),
 });
 
@@ -214,6 +227,23 @@ export class DraftStage implements Stage {
     // description against a 160 ceiling, and no source links at all.
     const slug = sanitiseSlug(meta.value.slug, primaryKeyword);
     const description = clampDescription(meta.value.description);
+    const tags = meta.value.tags.slice(0, 8);
+
+    // An off-list category falls back to the operator's choice, which is a real
+    // answer rather than a guess — the form only offers the ones that exist.
+    const articleCategory = CATEGORY_VALUES.includes(meta.value.category)
+      ? meta.value.category
+      : category;
+
+    // `ArticleValidationService` rejects a malformed identifier outright, and
+    // "CVE-2025-54236 (SessionReaper)" is the shape that arrives. Dropping the
+    // entry rather than repairing it is deliberate: a CVE this stage cannot read
+    // is one the grounding gate cannot check either, and the body still names it.
+    // `?? []` is for the type only — the schema defaults it — because `json` is
+    // generic over the schema's input type, where a defaulted key is optional.
+    const cves = (meta.value.cves ?? []).filter((cve) =>
+      /^CVE-\d{4}-\d{4,}$/.test(cve),
+    );
 
     const finalised = finaliseBody(stripBodyFence(body.value), {
       primaryKeyword,
@@ -228,7 +258,15 @@ export class DraftStage implements Stage {
       primaryKeyword,
     );
 
-    const value = { ...meta.value, slug, description, secondaryKeywords };
+    const value = {
+      ...meta.value,
+      slug,
+      description,
+      secondaryKeywords,
+      tags,
+      cves,
+      category: articleCategory,
+    };
     const usage = {
       inputTokens: meta.usage.inputTokens + body.usage.inputTokens,
       outputTokens: meta.usage.outputTokens + body.usage.outputTokens,
