@@ -5,9 +5,10 @@ import { WebSearchService, type SearchResult } from '../../tools/web-search.serv
 import { WebFetchService } from '../../tools/web-fetch.service';
 import { extractCves, isNotASource } from '../../tools/source-filters';
 import { ResearchService } from '../../research/research.service';
+import { mentions } from '../../research/grounding.service';
 import { DeepSeekService } from '../deepseek.service';
 import { PromptsService, today } from '../prompts.service';
-import { StageError } from '../errors';
+import { StageError, TopicUnworkableError } from '../errors';
 import { stripBodyFence } from '../post-process';
 import type { Stage, StageContext, StageResult } from '../stage.types';
 
@@ -100,10 +101,10 @@ export class ResearchStage implements Stage {
     }
 
     if (!seen.size) {
-      throw new StageError(
+      throw new TopicUnworkableError(
         `No search results for "${topic}".`,
-        'validation',
-        'No sources were found for that topic. Check the spelling, or try naming the vendor or CVE directly.',
+        'Nothing at all was found for that topic, so there is nothing to write ' +
+          'from. Check the spelling, or start a different topic.',
       );
     }
 
@@ -122,6 +123,31 @@ export class ResearchStage implements Stage {
     for (const candidate of ranked) {
       try {
         const page = await this.webFetch.fetchPage(candidate.url);
+
+        // A page whose URL names a CVE but whose extracted text never mentions
+        // it did not render. NVD is a client-side application, and a plain
+        // fetch of /vuln/detail/CVE-x gets a 2KB shell of chrome and no record.
+        //
+        // Keeping it is worse than dropping it, and worse than a failed fetch.
+        // The corpus below labels every source with its URL, so the model is
+        // handed the identifier, writes it into the brief in good faith, and the
+        // draft inherits it — while the stored text can never ground it, because
+        // the text does not contain it. That is not the model inventing a fact;
+        // it is this stage feeding it one. Measured 2026-08-17: two NVD shells
+        // put CVE-2026-48356 and CVE-2026-48000 into an Adobe Commerce brief and
+        // the draft stage died on the grounding gate with no way to see why.
+        //
+        // Dropping it here also keeps it out of the Tier 1 count below, which it
+        // was otherwise satisfying while proving nothing.
+        const named = extractCves(page.finalUrl);
+        const unrendered = named.filter((cve) => !mentions(page.markdown, cve));
+        if (unrendered.length) {
+          failures.push(
+            `${hostOf(candidate.url)} (returned no text mentioning ${unrendered.join(', ')} — page did not render)`,
+          );
+          continue;
+        }
+
         // finalUrl, not url: cite where the redirect landed, which is also what
         // the publish preflight will later re-check for liveness.
         fetched.push({
@@ -149,10 +175,12 @@ export class ResearchStage implements Stage {
     }
 
     if (!fetched.some((f) => f.tier === 1)) {
-      throw new StageError(
+      throw new TopicUnworkableError(
         'No Tier 1 source among the fetched pages.',
-        'validation',
-        'No primary source (a vendor advisory, CISA, or NVD) could be read for this topic. An article without one is not publishable — try naming the vendor or the CVE directly.',
+        'No primary source — a vendor advisory, CISA, or NVD — could be read for ' +
+          'this topic, and an article without one is not publishable. Running this ' +
+          'again searches the same web and finds the same nothing. Start a ' +
+          'different topic, or name the vendor or the CVE directly in it.',
       );
     }
 

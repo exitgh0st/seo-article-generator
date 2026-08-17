@@ -41,7 +41,27 @@ export function isNotASource(url: string): boolean {
   if (/\/(search|tag|tags|category|categories|page|archive)(\/|$)/i.test(parsed.pathname)) {
     return true;
   }
-  if (parsed.searchParams.has('updated-max') || parsed.searchParams.has('max-results')) {
+  if (
+    parsed.searchParams.has('updated-max') ||
+    parsed.searchParams.has('max-results') ||
+    parsed.searchParams.has('items_per_page')
+  ) {
+    return true;
+  }
+
+  // Aggregated catalogues, which are the same problem one level up: they fetch
+  // cleanly and are wall-to-wall CVE identifiers for unrelated products. One
+  // Adobe Commerce brief came back carrying 33 CVEs, 31 of them inherited from
+  // CISA's weekly vulnerability bulletin and the KEV catalogue index. A
+  // catalogue is a lookup table, not reporting about this story, and an article
+  // anchored on one is not anchored on anything.
+  //
+  // Only the indexes. An individual advisory under /news-events/ics-advisories/
+  // or /advisories/ is exactly the Tier 1 primary source this beat wants.
+  if (
+    /\/news-events\/bulletins\//i.test(parsed.pathname) ||
+    /\/known-exploited-vulnerabilities-catalog\/?$/i.test(parsed.pathname)
+  ) {
     return true;
   }
 
